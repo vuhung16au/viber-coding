@@ -48,6 +48,11 @@ No external libraries or frameworks are used, making this a lightweight and depe
 
 - **Accessibility**: The tool works across all modern browsers and devices without requiring any special plugins or software.
 
+## Links
+
+- [GitHub Repository](https://github.com/vuhung16au/viber-coding/tree/main/PasswordGenerator)
+- [Live Demo](https://password-generator-zeta-taupe-71.vercel.app/)
+
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details.
