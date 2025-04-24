@@ -2,11 +2,9 @@
   "name": "quiz-gotitright",
   "version": "1.0.0",
   "description": "A Firebase-backed quiz application",
-  "main": "firebase-test.js",
-  "type": "module",
   "private": true,
   "scripts": {
-    "dev": "next dev --turbopack",
+    "dev": "next dev",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",

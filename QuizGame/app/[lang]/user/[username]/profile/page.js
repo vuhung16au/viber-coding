@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { useParams } from 'next/navigation';
-import PublicProfile from '../../../../../components/profile/PublicProfile';
+import PublicProfile from '@/app/components/profile/PublicProfile';
 
 export default function UserPublicProfilePage() {
   const params = useParams();

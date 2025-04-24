@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { useAuth } from '@/app/context/LanguageContext';
+import { useAuth } from '@/app/context/AuthContext';
 import { getUserStatisticsByUsername, getUserResults } from '@/app/firebase/statistics';
 import { useTranslation } from '@/app/translations';
 

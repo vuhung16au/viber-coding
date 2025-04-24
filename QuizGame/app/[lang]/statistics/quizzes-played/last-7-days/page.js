@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useAuth } from '@/app/context/LanguageContext';
+import { useAuth } from '@/app/context/AuthContext';
 import { getGlobalStatistics } from '@/firebase/statistics';
 import { useTranslation } from '@/app/translations';
 
