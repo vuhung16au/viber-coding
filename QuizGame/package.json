@@ -1,0 +1,31 @@
+{
+  "name": "quiz-gotitright",
+  "version": "1.0.0",
+  "description": "A Firebase-backed quiz application",
+  "main": "firebase-test.js",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --turbopack",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "test": "node firebase-test.js"
+  },
+  "dependencies": {
+    "autoprefixer": "^10.4.21",
+    "firebase": "^10.14.1",
+    "next": "15.3.1",
+    "next-themes": "^0.4.6",
+    "postcss": "^8.5.3",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "unidecode": "^1.1.0"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "^3",
+    "eslint": "^9",
+    "eslint-config-next": "15.3.1",
+    "tailwindcss": "^3.4.17"
+  }
+}
