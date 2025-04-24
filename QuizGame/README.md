@@ -2,15 +2,15 @@
 
 A modern, interactive quiz application that allows users to create, share, and take quizzes on various topics. The platform features user authentication, multilingual support, statistics tracking, and a responsive design for an optimal experience across devices.
 
-![Quiz Game Screenshot](public/images/default-quiz.jpg)
+![Quiz Game Screenshot](quiz-getitright-dashboard.png)
 
 ## Live Demo
 
-Visit the live demo: [Quiz Game Demo](https://quiz-game-demo.vercel.app)
+Visit the live demo: [Quiz Game Demo](https://quiz-getitright-git-main-vuhung16aus-projects.vercel.app/)
 
 ## GitHub Repository
 
-[https://github.com/username/quiz-game](https://github.com/username/quiz-game)
+[https://github.com/username/quiz-game](https://github.com/vuhung16au/viber-coding/tree/main/QuizGame)
 
 ## Technology Stack
 
