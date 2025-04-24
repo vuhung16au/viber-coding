@@ -537,3 +537,19 @@ http://localhost:3000/en/statisticshttp://localhost:3000/en/statistics
 
 - Pls add missing translation keys for 'en', 'vi', 'ja' for statistics page 
 - Make sure dark/light mode works correctly on statistics page 
+
+
+# Fix bug quiz page 
+
+Choices A, B, C, D are not displayed on quiz page (http://localhost:3000/en/quiz/-OOaH-slh-_SJ3eHkvDB/11-ten-toi-la)
+- Pls fix the bug and make sure that the quiz page is displaying the correct quiz questions
+- Pls fix the bug and make sure that the quiz page is displaying the correct quiz answers
+
+It looks like when create a new quiz, the questions/correct answer are properly saved to the DB.
+
+However, the choices (A, B, C, D) do not display when view (see following URL)
+https://quiz-gotitright.vercel.app/en/quiz/-OOc3iGn0td8Nb3i0k2K/1152-11
+
+Pls make sure the choices (A, B, C, D) are fetched correctly from the correct places in Firebase realtime db.
+
+Fix the bug 

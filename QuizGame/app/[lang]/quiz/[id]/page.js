@@ -116,6 +116,33 @@ export default function QuizPage() {
                       text: option,
                       isCorrect: index === parseInt(questionData.correctAnswer)
                     }));
+                  } else if (questionData.choices) {
+                    // Handle 'choices' property which contains the A, B, C, D options
+                    // Convert choices to the expected answers format
+                    answers = Object.entries(questionData.choices).map(([key, value]) => ({
+                      id: key,
+                      text: value,
+                      isCorrect: key === questionData.correctAnswer
+                    }));
+                  }
+                  
+                  // If answers is still empty, look for other potential properties
+                  if (answers.length === 0) {
+                    // Check for common letter-based keys: A, B, C, D, etc.
+                    const letterKeys = ['A', 'B', 'C', 'D', 'E', 'F'];
+                    const hasLetterChoices = letterKeys.some(letter => questionData[letter] !== undefined);
+                    
+                    if (hasLetterChoices) {
+                      letterKeys.forEach(letter => {
+                        if (questionData[letter] !== undefined) {
+                          answers.push({
+                            id: letter,
+                            text: questionData[letter],
+                            isCorrect: letter === questionData.correctAnswer
+                          });
+                        }
+                      });
+                    }
                   }
                   
                   // Determine correct answer ID
