@@ -9,7 +9,10 @@ import {
   query as dbQuery, 
   orderByChild, 
   equalTo,
-  serverTimestamp
+  serverTimestamp,
+  limitToFirst,
+  limitToLast,
+  orderByKey
 } from 'firebase/database';
 import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage } from './config';
@@ -157,6 +160,99 @@ export async function getAllQuizzes() {
       return quizzes;
     } catch (error) {
       console.error('Error getting quizzes:', error);
+      throw error;
+    }
+  });
+}
+
+/**
+ * Get quizzes (alias for getAllQuizzes for compatibility)
+ * @returns {Promise<Array>} - Array of quiz objects
+ */
+export async function getQuizzes() {
+  return getAllQuizzes();
+}
+
+/**
+ * Get most popular quizzes based on results
+ * @param {Number} limit - Maximum number of quizzes to return
+ * @returns {Promise<Array>} - Array of quiz objects
+ */
+export async function getMostPopularQuizzes(limit = 5) {
+  return retryOperation(async () => {
+    try {
+      // First get all quizzes
+      const allQuizzes = await getAllQuizzes();
+      
+      // Get all quiz results
+      const resultsRef = databaseRef(db, RESULTS_PATH);
+      const resultsSnapshot = await get(resultsRef);
+      
+      if (!resultsSnapshot.exists()) {
+        return allQuizzes.slice(0, limit);
+      }
+      
+      // Count the results for each quiz
+      const quizResultCounts = {};
+      resultsSnapshot.forEach((resultSnapshot) => {
+        const result = resultSnapshot.val();
+        const quizId = result.quizId;
+        
+        if (!quizResultCounts[quizId]) {
+          quizResultCounts[quizId] = 0;
+        }
+        
+        quizResultCounts[quizId]++;
+      });
+      
+      // Sort quizzes by their result count
+      const sortedQuizzes = allQuizzes.sort((a, b) => {
+        const countA = quizResultCounts[a.id] || 0;
+        const countB = quizResultCounts[b.id] || 0;
+        return countB - countA;
+      });
+      
+      return sortedQuizzes.slice(0, limit);
+    } catch (error) {
+      console.error('Error getting popular quizzes:', error);
+      throw error;
+    }
+  });
+}
+
+/**
+ * Get most recently created quizzes
+ * @param {Number} limit - Maximum number of quizzes to return
+ * @returns {Promise<Array>} - Array of quiz objects
+ */
+export async function getRecentQuizzes(limit = 5) {
+  return retryOperation(async () => {
+    try {
+      // Get quizzes ordered by creation time (newest first)
+      const quizzesRef = databaseRef(db, QUIZZES_PATH);
+      const recentQuizzesQuery = dbQuery(quizzesRef, limitToLast(limit));
+      const snapshot = await get(recentQuizzesQuery);
+      
+      if (!snapshot.exists()) {
+        return [];
+      }
+      
+      const quizzes = [];
+      snapshot.forEach((childSnapshot) => {
+        quizzes.push({
+          id: childSnapshot.key,
+          ...childSnapshot.val()
+        });
+      });
+      
+      // Sort by createdAt timestamp in descending order (newest first)
+      return quizzes.sort((a, b) => {
+        const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        return timeB - timeA;
+      });
+    } catch (error) {
+      console.error('Error getting recent quizzes:', error);
       throw error;
     }
   });
