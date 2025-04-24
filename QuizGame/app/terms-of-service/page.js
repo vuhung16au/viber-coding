@@ -1,8 +1,9 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { LanguageProvider, useLanguage } from '../context/LanguageContext';
 
-// Create a wrapper component that uses the language provider
+// The client-side component that uses the language context
 function TermsOfServiceContent() {
   const { t } = useLanguage();
   
@@ -12,7 +13,7 @@ function TermsOfServiceContent() {
       
       <div className="prose dark:prose-invert max-w-none">
         <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
-          {t('terms.lastUpdated')}: April 15, 2025
+          {t('terms.lastUpdated')}: April 24, 2025
         </p>
         
         <section>
@@ -89,11 +90,39 @@ function TermsOfServiceContent() {
   );
 }
 
-// Main page component that provides the language context
-export default function TermsOfServicePage() {
+// ClientContent wrapper ensures hooks are only used on the client side
+function ClientContent() {
+  const [isClient, setIsClient] = useState(false);
+  
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+  
+  if (!isClient) {
+    // Return a simple loading state or skeleton during SSR
+    return (
+      <div className="max-w-4xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
+        <h1 className="text-3xl font-bold text-center mb-8">Terms of Service</h1>
+        <div className="animate-pulse">
+          <div className="h-4 bg-gray-200 rounded mb-6"></div>
+          <div className="h-8 bg-gray-200 rounded mb-4"></div>
+          <div className="h-4 bg-gray-200 rounded mb-6"></div>
+          <div className="h-4 bg-gray-200 rounded mb-2"></div>
+          <div className="h-4 bg-gray-200 rounded mb-2"></div>
+          <div className="h-4 bg-gray-200 rounded mb-6"></div>
+        </div>
+      </div>
+    );
+  }
+  
   return (
     <LanguageProvider initialLocale="en">
       <TermsOfServiceContent />
     </LanguageProvider>
   );
+}
+
+// Main page component
+export default function TermsOfServicePage() {
+  return <ClientContent />;
 }

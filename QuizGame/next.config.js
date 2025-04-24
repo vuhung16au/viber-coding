@@ -7,8 +7,7 @@ module.exports = {
   trailingSlash: false,
   // Configure which pages should be statically generated
   output: 'standalone',
-  // Move these options outside of experimental as they're now standard config options
+  // These options were moved from experimental to root level in Next.js 14
   skipTrailingSlashRedirect: true,
   skipMiddlewareUrlNormalize: true,
-  // Remove the invalid generateStaticParams from config (it belongs in page components)
 }
