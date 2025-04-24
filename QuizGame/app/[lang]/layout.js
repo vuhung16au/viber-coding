@@ -1,6 +1,5 @@
 'use client';
 
-import React from 'react';
 import { ThemeProvider } from '../components/ThemeProvider';
 import Navbar from '../components/layout/Navbar';
 import Footer from '../components/layout/Footer';
@@ -9,10 +8,11 @@ import { AuthProvider } from '../firebase/auth';
 import StatisticsInitializer from '../components/StatisticsInitializer';
 
 export default function LanguageLayout({ children, params }) {
-  const unwrappedParams = React.use(params);
+  // Remove the problematic React.use() call and directly use params
+  const lang = params.lang;
   
   return (
-    <LanguageProvider initialLocale={unwrappedParams.lang}>
+    <LanguageProvider initialLocale={lang}>
       <AuthProvider>
         <ThemeProvider>
           {/* Initialize statistics system */}

@@ -10,4 +10,12 @@ module.exports = {
   // These options were moved from experimental to root level in Next.js 14
   skipTrailingSlashRedirect: true,
   skipMiddlewareUrlNormalize: true,
+  // Add server actions configuration to fix hydration issues
+  serverActions: {
+    bodySizeLimit: '2mb',
+  },
+  // Add proper configuration for middleware
+  experimental: {
+    serverComponentsExternalPackages: ["firebase"],
+  },
 }
