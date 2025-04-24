@@ -1,13 +1,13 @@
-'use client';
-
 import { useState, useEffect } from 'react';
-import Link from 'next/link';
 import { useAuth } from '../firebase/auth';
+import Link from 'next/link';
+import { useLanguage } from '../context/LanguageContext';
 import { recordQuizPlayed } from '../firebase/statistics';
 
-export default function QuizResults({ quiz, score, totalQuestions, userAnswers, onRetry }) {
+export default function QuizResults({ quiz, score, totalQuestions, userAnswers, onRetry, timeTaken }) {
   const [expandedDetails, setExpandedDetails] = useState(false);
   const { currentUser } = useAuth();
+  const { t, locale } = useLanguage();
   const percentage = Math.round((score / totalQuestions) * 100);
   
   // Record quiz completed in statistics
@@ -15,22 +15,53 @@ export default function QuizResults({ quiz, score, totalQuestions, userAnswers, 
     if (currentUser && quiz) {
       // Calculate the number of correct answers from the score
       const correctAnswers = score;
-      const timeTaken = quiz.timeTaken || null; // If quiz has a time taken property, use it
       
       // Record the quiz in both places for backward compatibility
       // 1. Use the statistics module for detailed tracking
-      recordQuizPlayed(currentUser.uid, quiz.id, percentage, totalQuestions, correctAnswers, timeTaken);
+      recordQuizPlayed(
+        currentUser.uid, 
+        quiz.id, 
+        percentage, 
+        totalQuestions, 
+        correctAnswers, 
+        timeTaken || null
+      );
       
       // 2. Also save to the main results collection
       import('../firebase/database').then(({ saveQuizResult }) => {
-        saveQuizResult(quiz.id, currentUser.uid, percentage)
+        saveQuizResult(
+          quiz.id, 
+          currentUser.uid, 
+          percentage, 
+          correctAnswers,
+          totalQuestions,
+          timeTaken || null,
+          new Date()
+        )
           .catch(error => console.error('Error saving quiz result:', error));
       });
     }
-  }, [currentUser, quiz, score, totalQuestions, percentage]);
+  }, [currentUser, quiz, score, totalQuestions, percentage, timeTaken]);
 
   const toggleDetails = () => {
     setExpandedDetails(!expandedDetails);
+  };
+  
+  // Format time taken in a readable way
+  const formatTimeTaken = (seconds) => {
+    if (!seconds || seconds <= 0) return 'Not recorded';
+    
+    if (seconds < 60) {
+      return `${seconds} second${seconds === 1 ? '' : 's'}`;
+    } else if (seconds < 3600) {
+      const minutes = Math.floor(seconds / 60);
+      const remainingSeconds = seconds % 60;
+      return `${minutes} minute${minutes === 1 ? '' : 's'}${remainingSeconds > 0 ? ` ${remainingSeconds} second${remainingSeconds === 1 ? '' : 's'}` : ''}`;
+    } else {
+      const hours = Math.floor(seconds / 3600);
+      const minutes = Math.floor((seconds % 3600) / 60);
+      return `${hours} hour${hours === 1 ? '' : 's'}${minutes > 0 ? ` ${minutes} minute${minutes === 1 ? '' : 's'}` : ''}`;
+    }
   };
 
   return (
@@ -76,6 +107,12 @@ export default function QuizResults({ quiz, score, totalQuestions, userAnswers, 
              percentage >= 40 ? 'Not bad, keep practicing!' : 
              'You can do better!'}
           </p>
+          
+          {timeTaken && (
+            <p className="text-gray-600 dark:text-gray-400 mt-2">
+              Time taken: {formatTimeTaken(timeTaken)}
+            </p>
+          )}
         </div>
       </div>
       
@@ -104,12 +141,12 @@ export default function QuizResults({ quiz, score, totalQuestions, userAnswers, 
               const isCorrect = userAnswer === question.correctAnswer;
               
               // Find the user's selected answer text
-              const userAnswerObj = question.answers.find(a => a.id === userAnswer);
-              const userAnswerText = userAnswerObj ? userAnswerObj.text : 'No answer';
+              const userAnswerObj = question.answers?.find(a => a.id === userAnswer);
+              const userAnswerText = userAnswerObj ? (userAnswerObj.text || userAnswerObj.answer || 'No answer') : 'No answer';
               
               // Find the correct answer text
-              const correctAnswerObj = question.answers.find(a => a.id === question.correctAnswer);
-              const correctAnswerText = correctAnswerObj ? correctAnswerObj.text : 'No correct answer';
+              const correctAnswerObj = question.answers?.find(a => a.id === question.correctAnswer);
+              const correctAnswerText = correctAnswerObj ? (correctAnswerObj.text || correctAnswerObj.answer || 'No correct answer') : 'No correct answer';
               
               // Display text can be in question.text or question.question field
               const questionText = question.text || question.question || '';
@@ -164,7 +201,7 @@ export default function QuizResults({ quiz, score, totalQuestions, userAnswers, 
           Try Again
         </button>
         <Link
-          href="/quizzes"
+          href={`/${locale || 'en'}/quizzes`}
           className="px-6 py-3 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-800 dark:text-white font-medium rounded-lg transition-colors flex-1 sm:flex-none text-center flex items-center justify-center"
         >
           <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">

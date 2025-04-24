@@ -20,6 +20,9 @@ export default function QuizPage() {
   const [userAnswers, setUserAnswers] = useState([]);
   const [showResults, setShowResults] = useState(false);
   const [error, setError] = useState(null);
+  const [startTime, setStartTime] = useState(null);
+  const [endTime, setEndTime] = useState(null);
+  const [timeTaken, setTimeTaken] = useState(0);
   
   // Function to get a quiz by ID from Firebase Realtime Database
   const getQuizById = async (quizId) => {
@@ -36,6 +39,13 @@ export default function QuizPage() {
     }
     return null;
   };
+
+  // Set start time when quiz is loaded
+  useEffect(() => {
+    if (quiz && !startTime) {
+      setStartTime(new Date());
+    }
+  }, [quiz, startTime]);
 
   // Redirect to the slug URL if we only have the ID
   useEffect(() => {
@@ -310,6 +320,8 @@ export default function QuizPage() {
     if (currentQuestionIndex < quiz.questions.length - 1) {
       setCurrentQuestionIndex(currentQuestionIndex + 1);
     } else {
+      // Record end time when submitting the quiz
+      setEndTime(new Date());
       setShowResults(true);
     }
   };
@@ -326,6 +338,17 @@ export default function QuizPage() {
   // Submit quiz
   const submitQuiz = () => {
     if (!quiz || !quiz.questions) return;
+    
+    // Record end time when submitting the quiz
+    const now = new Date();
+    setEndTime(now);
+    
+    // Calculate time taken in seconds
+    if (startTime) {
+      const timeInSeconds = Math.floor((now - startTime) / 1000);
+      setTimeTaken(timeInSeconds);
+    }
+    
     setShowResults(true);
   };
 
@@ -333,9 +356,13 @@ export default function QuizPage() {
   const retryQuiz = () => {
     if (!quiz || !quiz.questions) return;
     
+    // Reset the quiz state for a new attempt
     setCurrentQuestionIndex(0);
     setUserAnswers(new Array(quiz.questions.length).fill(null));
     setShowResults(false);
+    setStartTime(new Date());
+    setEndTime(null);
+    setTimeTaken(0);
   };
 
   // Calculate score
@@ -356,6 +383,14 @@ export default function QuizPage() {
     
     return correctAnswers;
   };
+
+  // Calculate time taken when showing results
+  useEffect(() => {
+    if (showResults && startTime && endTime) {
+      const timeInSeconds = Math.floor((endTime - startTime) / 1000);
+      setTimeTaken(timeInSeconds);
+    }
+  }, [showResults, startTime, endTime]);
 
   if (loading) {
     return (
@@ -405,6 +440,7 @@ export default function QuizPage() {
           totalQuestions={quiz.questions.length}
           userAnswers={userAnswers}
           onRetry={retryQuiz}
+          timeTaken={timeTaken}
         />
       </div>
     );
