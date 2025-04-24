@@ -6,8 +6,18 @@ import { getGlobalStatistics, getUserStatistics } from '../firebase/statistics';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useLanguage } from '../context/LanguageContext';
+import dynamic from 'next/dynamic';
+
+// Use dynamic import with ssr disabled to prevent server-side rendering issues
+const StatisticsContent = dynamic(() => Promise.resolve(StatisticsPageContent), {
+  ssr: false
+});
 
 export default function StatisticsPage() {
+  return <StatisticsContent />;
+}
+
+function StatisticsPageContent() {
   const { currentUser } = useAuth();
   const router = useRouter();
   const { t, locale } = useLanguage();
