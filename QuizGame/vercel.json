@@ -2,23 +2,6 @@
   "version": 2,
   "buildCommand": "npm run vercel-build",
   "outputDirectory": ".next",
-  "routes": [
-    {
-      "src": "/statistics",
-      "dest": "/statistics"
-    },
-    {
-      "src": "/profile",
-      "dest": "/profile"
-    },
-    {
-      "src": "/dashboard",
-      "dest": "/dashboard"
-    },
-    {
-      "handle": "filesystem"
-    }
-  ],
   "rewrites": [
     {
       "source": "/statistics/:path*",
