@@ -8,9 +8,9 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
 export default function MyQuizResults() {
+  const router = useRouter();
   const { currentUser } = useAuth();
   const { t } = useLanguage();
-  const router = useRouter();
   
   const [resultsSummary, setResultsSummary] = useState({
     totalCompleted: 0,
@@ -82,7 +82,7 @@ export default function MyQuizResults() {
               const quiz = await getQuizById(result.quizId);
               
               // Add to category stats
-              const category = quiz.category || 'Uncategorized';
+              const category = quiz?.category || 'Uncategorized';
               if (!categoryStats[category]) {
                 categoryStats[category] = {
                   count: 0,
@@ -101,11 +101,11 @@ export default function MyQuizResults() {
               return {
                 id: result.id,
                 quizId: result.quizId,
-                quizTitle: quiz.title,
-                score: result.score,
+                quizTitle: quiz?.title || 'Unknown Quiz',
+                score: result.score || 0,
                 category: category,
                 date: result.date ? new Date(result.date.seconds * 1000) : new Date(),
-                questionsCount: quiz.questions ? quiz.questions.length : 0,
+                questionsCount: quiz?.questions ? quiz.questions.length : 0,
               };
             } catch (error) {
               console.error("Error fetching quiz details:", error);
@@ -132,7 +132,7 @@ export default function MyQuizResults() {
     }
 
     fetchResultsSummary();
-  }, [currentUser, t]);
+  }, [currentUser]);
 
   // Format date to local string
   const formatDate = (date) => {

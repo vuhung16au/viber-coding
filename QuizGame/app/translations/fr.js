@@ -100,7 +100,26 @@ const fr = {
     cancel: 'Annuler',
     saveChanges: 'Enregistrer les modifications',
     languagePreference: 'Préférence de langue',
-    selectLanguage: 'Sélectionnez votre langue d\'affichage préférée'
+    selectLanguage: 'Sélectionnez votre langue d\'affichage préférée',
+    
+    // New translation keys for profile fields
+    phoneNumber: 'Numéro de téléphone',
+    noPhoneNumber: 'Aucun numéro de téléphone ajouté',
+    enterPhoneNumber: 'Entrez le numéro de téléphone',
+    address: 'Adresse',
+    noAddress: 'Aucune adresse ajoutée',
+    enterAddress: 'Entrez l\'adresse',
+    dateOfBirth: 'Date de naissance',
+    noDateOfBirth: 'Aucune date de naissance ajoutée',
+    profilePicture: 'Photo de profil',
+    profilePictureUploadDisabled: 'Le téléchargement de photos de profil sera bientôt disponible.',
+    timezone: 'Fuseau horaire',
+    usernameRequired: 'Le nom d\'utilisateur est requis',
+    usernameTooLong: 'Le nom d\'utilisateur doit faire 20 caractères ou moins',
+    usernameAlreadyExists: 'Ce nom d\'utilisateur est déjà pris',
+    enterUsername: 'Entrez le nom d\'utilisateur',
+    usernameMaxLength: 'Maximum 20 caractères',
+    noUsername: 'Aucun nom d\'utilisateur défini'
   },
   settings: {
     language: 'Langue',

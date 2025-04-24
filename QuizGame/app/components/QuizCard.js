@@ -16,9 +16,13 @@ export default function QuizCard({ quiz, showActions = false, onEdit, onDelete, 
     (Array.isArray(quiz.tags) ? quiz.tags : Object.values(quiz.tags)) : 
     [];
   
-  // Default handler if onStart isn't provided
-  const defaultStartHandler = () => {
-    router.push(`/${lang}/quiz/${quiz.id}`);
+  // Always define the handler using hooks, regardless of whether onStart is provided
+  const handleStartQuiz = () => {
+    if (onStart) {
+      onStart();
+    } else {
+      router.push(`/${lang}/quiz/${quiz.id}`);
+    }
   };
 
   return (
@@ -55,7 +59,7 @@ export default function QuizCard({ quiz, showActions = false, onEdit, onDelete, 
         
         <div className="flex flex-wrap gap-2">
           <button 
-            onClick={onStart || defaultStartHandler}
+            onClick={handleStartQuiz}
             className="inline-block px-6 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors"
           >
             Start Quiz

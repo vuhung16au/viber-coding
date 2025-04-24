@@ -100,7 +100,26 @@ const zh = {
     cancel: '取消',
     saveChanges: '保存更改',
     languagePreference: '语言偏好',
-    selectLanguage: '选择您偏好的显示语言'
+    selectLanguage: '选择您偏好的显示语言',
+    
+    // New translation keys for profile fields
+    phoneNumber: '电话号码',
+    noPhoneNumber: '未添加电话号码',
+    enterPhoneNumber: '输入电话号码',
+    address: '地址',
+    noAddress: '未添加地址',
+    enterAddress: '输入地址',
+    dateOfBirth: '出生日期',
+    noDateOfBirth: '未添加出生日期',
+    profilePicture: '头像',
+    profilePictureUploadDisabled: '头像上传功能即将推出。',
+    timezone: '时区',
+    usernameRequired: '用户名为必填项',
+    usernameTooLong: '用户名不得超过20个字符',
+    usernameAlreadyExists: '该用户名已被使用',
+    enterUsername: '输入用户名',
+    usernameMaxLength: '最多20个字符',
+    noUsername: '未设置用户名'
   },
   settings: {
     language: '语言',

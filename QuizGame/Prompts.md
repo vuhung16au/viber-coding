@@ -129,3 +129,7 @@ Generate `FEATURE.md` and write
 - short description of each feature,
 - how to use each feature,
 - any known issues with each feature,
+
+# Generate translation files
+
+Generate missing translation keys for all languages: en, vi, fr, de, ja, zh

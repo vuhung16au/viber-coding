@@ -1,22 +1,23 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/app/firebase/auth';
-import { getGlobalStatistics, scheduleStatisticsCleanup } from '@/app/firebase/statistics';
+import { getGlobalStatistics, scheduleStatisticsCleanup, cleanupStatistics } from '@/app/firebase/statistics';
 import { useTranslation } from '@/app/translations';
 import StatisticsLeaderboard from '@/app/components/StatisticsLeaderboard';
 
-export default function StatisticsPage({ params }) {
-  const unwrappedParams = React.use(params);
-  const { lang } = unwrappedParams;
+export default function StatisticsPage() {
+  const params = useParams();
+  const { lang } = params;
   const { t } = useTranslation(lang);
   const { user, loading } = useAuth();
   const router = useRouter();
   const [stats, setStats] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('overview'); // 'overview', 'played', or 'created'
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     // Schedule statistics cleanup when the component mounts
@@ -40,6 +41,20 @@ export default function StatisticsPage({ params }) {
 
   const handleTabChange = (tab) => {
     setActiveTab(tab);
+  };
+
+  const handleCleanupStatistics = async () => {
+    setRefreshing(true);
+    try {
+      await cleanupStatistics();
+      // Refresh statistics after cleanup
+      const globalStats = await getGlobalStatistics();
+      setStats(globalStats);
+    } catch (error) {
+      console.error("Error during statistics cleanup:", error);
+    } finally {
+      setRefreshing(false);
+    }
   };
 
   if (isLoading) {
@@ -245,10 +260,10 @@ export default function StatisticsPage({ params }) {
         <div className="mt-10 bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
           <h3 className="text-xl font-semibold mb-4 dark:text-white text-gray-800">{t('statistics.adminTools')}</h3>
           <button 
-            onClick={cleanupStatistics}
+            onClick={handleCleanupStatistics}
             className="bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded"
           >
-            {isLoading ? t('statistics.refreshing') : t('statistics.refreshAllStatistics')}
+            {refreshing ? t('statistics.refreshing') : t('statistics.refreshAllStatistics')}
           </button>
           <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">{t('statistics.refreshStatsWarning')}</p>
         </div>
