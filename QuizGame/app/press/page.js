@@ -1,8 +1,10 @@
 'use client';
 
 import { useLanguage } from '../context/LanguageContext';
+import dynamic from 'next/dynamic';
 
-export default function PressPage() {
+// Create a client-only component that uses the LanguageContext
+function PressContent() {
   const { t } = useLanguage();
   
   // Sample press releases - would normally be fetched from a database
@@ -166,4 +168,13 @@ export default function PressPage() {
       </div>
     </div>
   );
+}
+
+// Use dynamic import with SSR disabled to prevent the component from being pre-rendered
+const PressContentWithNoSSR = dynamic(() => Promise.resolve(PressContent), {
+  ssr: false
+});
+
+export default function PressPage() {
+  return <PressContentWithNoSSR />;
 }

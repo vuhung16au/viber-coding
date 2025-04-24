@@ -2,8 +2,9 @@
 
 import { useState } from 'react';
 import { useLanguage } from '../context/LanguageContext';
+import dynamic from 'next/dynamic';
 
-export default function FAQPage() {
+function FAQContent() {
   const { t } = useLanguage();
   const [openItem, setOpenItem] = useState(null);
   
@@ -84,4 +85,13 @@ export default function FAQPage() {
       </div>
     </div>
   );
+}
+
+// Use dynamic import with SSR disabled to prevent the component from being pre-rendered
+const FAQContentWithNoSSR = dynamic(() => Promise.resolve(FAQContent), {
+  ssr: false
+});
+
+export default function FAQPage() {
+  return <FAQContentWithNoSSR />;
 }

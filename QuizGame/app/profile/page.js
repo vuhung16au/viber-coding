@@ -1,5 +1,6 @@
 'use client';
 
+import dynamic from 'next/dynamic';
 import { useAuth } from '../firebase/auth';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -8,7 +9,7 @@ import UserProfile from '../components/auth/UserProfile';
 import { ref, get } from 'firebase/database';
 import { db } from '../firebase/config';
 
-export default function ProfilePage() {
+function ProfileContent() {
   const { currentUser } = useAuth();
   const router = useRouter();
   const [username, setUsername] = useState('');
@@ -68,4 +69,13 @@ export default function ProfilePage() {
       </main>
     </div>
   );
+}
+
+// Use dynamic import with SSR disabled to prevent the component from being pre-rendered
+const ProfileContentWithNoSSR = dynamic(() => Promise.resolve(ProfileContent), {
+  ssr: false
+});
+
+export default function ProfilePage() {
+  return <ProfileContentWithNoSSR />;
 }
