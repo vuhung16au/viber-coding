@@ -2,7 +2,12 @@ import { Inter } from 'next/font/google';
 import './globals.css';
 import Script from 'next/script';
 
-const inter = Inter({ subsets: ['latin'] });
+// Configure the Inter font with display settings to avoid preload warning
+const inter = Inter({
+  subsets: ['latin'],
+  display: 'swap', // Use 'swap' to show text while font loads
+  variable: '--font-inter', // Define a CSS variable for the font
+});
 
 export const metadata = {
   title: 'Quiz Get It Right',
@@ -12,13 +17,25 @@ export const metadata = {
 // This root layout will be used by the middleware to redirect to language-specific routes
 export default function RootLayout({ children }) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning className={inter.variable}>
       <body className={inter.className}>{children}</body>
-      <Script id="suppress-extensions">
+      
+      {/* Fix font preloading issues by setting appropriate 'as' attribute */}
+      <Script id="fix-font-preload" strategy="afterInteractive">
         {`
           document.addEventListener('DOMContentLoaded', () => {
-            const htmlElement = document.documentElement;
+            // Fix font preloading issues
+            const preloadLinks = document.querySelectorAll('link[rel="preload"][href*=".woff2"]');
+            preloadLinks.forEach(link => {
+              if (!link.hasAttribute('as') || link.getAttribute('as') !== 'font') {
+                link.setAttribute('as', 'font');
+                link.setAttribute('type', 'font/woff2');
+                link.setAttribute('crossorigin', 'anonymous');
+              }
+            });
+            
             // Remove browser extension attributes that cause hydration issues
+            const htmlElement = document.documentElement;
             if (htmlElement.hasAttribute('katalonextensionid')) {
               htmlElement.removeAttribute('katalonextensionid');
             }

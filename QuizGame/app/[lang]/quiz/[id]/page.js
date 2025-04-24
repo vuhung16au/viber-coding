@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { use } from 'react';
+import { useParams } from 'next/navigation';
 // Use the database from the centralized firebase config
 import { database } from '../../../../firebase/config';
 import { ref, get } from 'firebase/database';
@@ -10,9 +10,10 @@ import Question from '../../../components/Question';
 import QuizResults from '../../../components/QuizResults';
 import { generateSlug } from '../../../../utils/slug';
 
-export default function QuizPage({ params }) {
+export default function QuizPage() {
   const router = useRouter();
-  const unwrappedParams = use(params); // Unwrap the params Promise
+  const params = useParams(); // Use params directly without the use() hook
+  const { id, lang } = params || {}; // Destructure safely
   const [quiz, setQuiz] = useState(null);
   const [loading, setLoading] = useState(true);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
@@ -22,6 +23,8 @@ export default function QuizPage({ params }) {
   
   // Function to get a quiz by ID from Firebase Realtime Database
   const getQuizById = async (quizId) => {
+    if (!quizId) return null;
+    
     const quizRef = ref(database, `quizzes/${quizId}`);
     const snapshot = await get(quizRef);
     
@@ -38,81 +41,96 @@ export default function QuizPage({ params }) {
     // Fetch quiz by id from Realtime Database
     const fetchQuiz = async () => {
       try {
-        if (!unwrappedParams || !unwrappedParams.id) {
-          setError('Quiz ID not found');
+        if (!id) {
+          setError('Quiz ID is missing');
           setLoading(false);
           return;
         }
         
-        const quizId = unwrappedParams.id;
-        const fetchedQuiz = await getQuizById(quizId);
+        const fetchedQuiz = await getQuizById(id);
         
         if (fetchedQuiz) {
-          // If the URL doesn't have a slug yet and we're not on a page with a slug parameter,
-          // redirect to the slugified URL
-          if (fetchedQuiz.description && !unwrappedParams.slug) {
-            const slug = generateSlug(fetchedQuiz.description);
-            router.replace(`/${unwrappedParams.lang}/quiz/${quizId}/${slug}`);
-            return; // Stop further execution as we're redirecting
-          }
-          
-          // Fetch the questions for this quiz
+          // Create properly structured questions array
           const questions = [];
           
-          // If questions is an array of IDs, fetch each question
-          if (fetchedQuiz.questions && Array.isArray(fetchedQuiz.questions)) {
-            for (const questionId of fetchedQuiz.questions) {
-              const questionRef = ref(database, `questions/${questionId}`);
-              const questionSnapshot = await get(questionRef);
-              
-              if (questionSnapshot.exists()) {
-                const questionData = questionSnapshot.val();
+          // Handle different structures for questions
+          if (fetchedQuiz.questions) {
+            // If questions is an array directly, use it
+            if (Array.isArray(fetchedQuiz.questions)) {
+              questions.push(...fetchedQuiz.questions);
+            } 
+            // If questions is an object with question IDs as keys
+            else if (typeof fetchedQuiz.questions === 'object') {
+              for (const questionId of Object.keys(fetchedQuiz.questions)) {
+                const questionData = fetchedQuiz.questions[questionId];
                 
-                // Make sure we have question text (handle different formats)
-                const questionText = questionData.question || questionData.text || '';
-                
-                // Fetch answers for this question
-                let answers = [];
-                
-                if (questionData.answers && Array.isArray(questionData.answers)) {
-                  for (const answerId of questionData.answers) {
-                    const answerRef = ref(database, `answers/${answerId}`);
-                    const answerSnapshot = await get(answerRef);
-                    
-                    if (answerSnapshot.exists()) {
-                      const answerData = answerSnapshot.val();
-                      // Ensure we have a proper answer object with correct ID and text
-                      answers.push({
-                        id: answerId,
-                        text: answerData.text || answerData.answer || answerData.toString(),
-                        isCorrect: answerData.isCorrect || false
-                      });
+                // Handle case where questionData might be just a reference
+                if (typeof questionData === 'string') {
+                  // Fetch the actual question data
+                  const questionRef = ref(database, `questions/${questionData}`);
+                  const questionSnapshot = await get(questionRef);
+                  
+                  if (questionSnapshot.exists()) {
+                    const fullQuestionData = questionSnapshot.val();
+                    questions.push({
+                      id: questionData,
+                      ...fullQuestionData
+                    });
+                  }
+                } 
+                // Handle case where question data is directly embedded
+                else {
+                  // Process question text
+                  const questionText = questionData.question || questionData.text || '';
+                  
+                  // Process answers
+                  let answers = [];
+                  
+                  // Handle different formats of answers
+                  if (questionData.answers) {
+                    if (Array.isArray(questionData.answers)) {
+                      answers = questionData.answers;
+                    } else if (typeof questionData.answers === 'object') {
+                      // Convert object to array
+                      for (const answerId of Object.keys(questionData.answers)) {
+                        answers.push({
+                          id: answerId,
+                          ...questionData.answers[answerId]
+                        });
+                      }
+                    }
+                  } else if (questionData.options) {
+                    // Convert options array to answers format
+                    answers = questionData.options.map((option, index) => ({
+                      id: String(index),
+                      text: option,
+                      isCorrect: index === questionData.correctAnswer
+                    }));
+                  }
+                  
+                  // Determine correct answer ID
+                  let correctAnswer = null;
+                  
+                  // First check if the question has a correctAnswer property
+                  if (questionData.correctAnswer !== undefined) {
+                    correctAnswer = questionData.correctAnswer;
+                  } else {
+                    // Otherwise, find the correct answer from the isCorrect property
+                    const correctAns = answers.find(a => a.isCorrect);
+                    if (correctAns) {
+                      correctAnswer = correctAns.id;
                     }
                   }
+                  
+                  // Add question with its answers to the questions array
+                  questions.push({
+                    id: questionId,
+                    question: questionText,  // Ensure this is set for Question component
+                    text: questionText,      // Ensure this is set for QuizResults component
+                    answers,
+                    correctAnswer
+                  });
                 }
-                
-                // Determine correct answer ID
-                let correctAnswer = null;
-                
-                // First check if the question has a correctAnswer property
-                if (questionData.correctAnswer) {
-                  correctAnswer = questionData.correctAnswer;
-                } else {
-                  // Otherwise, find the correct answer from the isCorrect property
-                  const correctAns = answers.find(a => a.isCorrect);
-                  if (correctAns) {
-                    correctAnswer = correctAns.id;
-                  }
-                }
-                
-                // Add question with its answers to the questions array
-                questions.push({
-                  id: questionId,
-                  question: questionText,  // Ensure this is set for Question component
-                  text: questionText,      // Ensure this is set for QuizResults component
-                  answers,
-                  correctAnswer
-                });
               }
             }
           }
@@ -137,7 +155,7 @@ export default function QuizPage({ params }) {
     };
     
     fetchQuiz();
-  }, [unwrappedParams, router]);
+  }, [id]);
 
   // Handle user answer
   const handleAnswer = (answerId) => {
@@ -193,7 +211,7 @@ export default function QuizPage({ params }) {
       const question = quiz.questions[i];
       const userAnswer = userAnswers[i];
       
-      // Find the correct answer
+      // Check if user's answer matches the correct answer ID
       if (userAnswer && userAnswer === question.correctAnswer) {
         correctAnswers++;
       }
@@ -216,7 +234,7 @@ export default function QuizPage({ params }) {
         <h1 className="text-4xl font-bold mb-6 text-red-600 dark:text-red-500">404</h1>
         <p className="text-xl mb-8 text-gray-800 dark:text-gray-200">{error}</p>
         <button 
-          onClick={() => router.push(`/${unwrappedParams?.lang || 'en'}`)}
+          onClick={() => router.push(`/${lang || 'en'}`)}
           className="px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors"
         >
           Back to Home
@@ -232,7 +250,7 @@ export default function QuizPage({ params }) {
         <h1 className="text-4xl font-bold mb-6 text-red-600 dark:text-red-500">Error</h1>
         <p className="text-xl mb-8 text-gray-800 dark:text-gray-200">Unable to load quiz data</p>
         <button 
-          onClick={() => router.push(`/${unwrappedParams?.lang || 'en'}`)}
+          onClick={() => router.push(`/${lang || 'en'}`)}
           className="px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors"
         >
           Back to Home
