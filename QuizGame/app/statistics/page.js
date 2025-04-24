@@ -1,11 +1,11 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useAuth } from '../../firebase/auth';
-import { getGlobalStatistics, getUserStatistics } from '../../firebase/statistics';
+import { useAuth } from '../firebase/auth';
+import { getGlobalStatistics, getUserStatistics } from '../firebase/statistics';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useLanguage } from '../../app/context/LanguageContext';
+import { useLanguage } from '../context/LanguageContext';
 
 export default function StatisticsPage() {
   const { currentUser } = useAuth();
