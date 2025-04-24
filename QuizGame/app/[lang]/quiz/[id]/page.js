@@ -37,6 +37,16 @@ export default function QuizPage() {
     return null;
   };
 
+  // Redirect to the slug URL if we only have the ID
+  useEffect(() => {
+    if (quiz && !window.location.pathname.includes('/' + id + '/')) {
+      const slug = generateSlug(quiz.title || quiz.description || '');
+      if (slug) {
+        router.replace(`/${lang || 'en'}/quiz/${id}/${slug}`);
+      }
+    }
+  }, [quiz, router, id, lang]);
+
   useEffect(() => {
     // Fetch quiz by id from Realtime Database
     const fetchQuiz = async () => {
@@ -143,6 +153,18 @@ export default function QuizPage() {
           
           // Initialize userAnswers array with the correct length
           setUserAnswers(new Array(questions.length).fill(null));
+
+          // Check if we need to redirect to include a slug in the URL
+          const currentPathSegments = window.location.pathname.split('/');
+          const pathIncludesSlug = currentPathSegments.length > 4; // /lang/quiz/id/slug
+          
+          if (!pathIncludesSlug) {
+            // Generate a slug from the quiz title or description
+            const slug = generateSlug(fetchedQuiz.title || fetchedQuiz.description || '');
+            if (slug) {
+              router.replace(`/${lang || 'en'}/quiz/${id}/${slug}`);
+            }
+          }
         } else {
           setError('Quiz not found');
         }
@@ -155,7 +177,7 @@ export default function QuizPage() {
     };
     
     fetchQuiz();
-  }, [id]);
+  }, [id, lang, router]);
 
   // Handle user answer
   const handleAnswer = (answerId) => {

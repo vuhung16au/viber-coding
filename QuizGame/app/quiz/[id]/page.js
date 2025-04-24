@@ -8,6 +8,7 @@ import { database } from '../../../firebase/config';
 import { ref, get } from 'firebase/database';
 import Question from '../../components/Question';
 import QuizResults from '../../components/QuizResults';
+import { generateSlug } from '../../../utils/slug';
 
 export default function QuizPage({ params }) {
   const router = useRouter();
@@ -33,6 +34,16 @@ export default function QuizPage({ params }) {
     return null;
   };
 
+  // Redirect to the slug URL if we only have the ID
+  useEffect(() => {
+    if (quiz && !window.location.pathname.includes('/' + quiz.id + '/')) {
+      const slug = generateSlug(quiz.title || quiz.description || '');
+      if (slug) {
+        router.replace(`/en/quiz/${quiz.id}/${slug}`);
+      }
+    }
+  }, [quiz, router]);
+
   useEffect(() => {
     // Fetch quiz by id from Realtime Database
     const fetchQuiz = async () => {
@@ -41,40 +52,130 @@ export default function QuizPage({ params }) {
         const fetchedQuiz = await getQuizById(quizId);
         
         if (fetchedQuiz) {
-          // Fetch the questions for this quiz
+          // Create properly structured questions array
           const questions = [];
           
-          // If questions is an array of IDs, fetch each question
-          if (fetchedQuiz.questions && Array.isArray(fetchedQuiz.questions)) {
-            for (const questionId of fetchedQuiz.questions) {
-              const questionRef = ref(database, `questions/${questionId}`);
-              const questionSnapshot = await get(questionRef);
-              
-              if (questionSnapshot.exists()) {
-                const questionData = questionSnapshot.val();
-                const answers = [];
-                
-                // Fetch answers for this question
-                if (questionData.answers && Array.isArray(questionData.answers)) {
-                  for (const answerId of questionData.answers) {
-                    const answerRef = ref(database, `answers/${answerId}`);
-                    const answerSnapshot = await get(answerRef);
+          // Handle different structures for questions
+          if (fetchedQuiz.questions) {
+            // If questions is an array directly, use it
+            if (Array.isArray(fetchedQuiz.questions)) {
+              // If the array contains question IDs, fetch each question
+              if (typeof fetchedQuiz.questions[0] === 'string') {
+                for (const questionId of fetchedQuiz.questions) {
+                  const questionRef = ref(database, `questions/${questionId}`);
+                  const questionSnapshot = await get(questionRef);
+                  
+                  if (questionSnapshot.exists()) {
+                    const questionData = questionSnapshot.val();
+                    const answers = [];
                     
-                    if (answerSnapshot.exists()) {
-                      answers.push({
-                        id: answerId,
-                        ...answerSnapshot.val()
-                      });
+                    // Fetch answers for this question
+                    if (questionData.answers && Array.isArray(questionData.answers)) {
+                      for (const answerId of questionData.answers) {
+                        const answerRef = ref(database, `answers/${answerId}`);
+                        const answerSnapshot = await get(answerRef);
+                        
+                        if (answerSnapshot.exists()) {
+                          answers.push({
+                            id: answerId,
+                            ...answerSnapshot.val()
+                          });
+                        }
+                      }
+                    } else if (questionData.options) {
+                      // Convert options array to answers format with proper structure
+                      answers.push(...questionData.options.map((option, index) => ({
+                        id: String(index),
+                        text: option,
+                        isCorrect: index === parseInt(questionData.correctAnswer)
+                      })));
                     }
+                    
+                    // Add question with its answers to the questions array
+                    questions.push({
+                      id: questionId,
+                      ...questionData,
+                      answers
+                    });
                   }
                 }
+              } else {
+                // The array contains full question objects
+                questions.push(...fetchedQuiz.questions);
+              }
+            } 
+            // If questions is an object with question IDs as keys
+            else if (typeof fetchedQuiz.questions === 'object') {
+              for (const questionId of Object.keys(fetchedQuiz.questions)) {
+                const questionData = fetchedQuiz.questions[questionId];
                 
-                // Add question with its answers to the questions array
-                questions.push({
-                  id: questionId,
-                  ...questionData,
-                  answers
-                });
+                // Handle case where questionData might be just a reference
+                if (typeof questionData === 'string') {
+                  // Fetch the actual question data
+                  const questionRef = ref(database, `questions/${questionData}`);
+                  const questionSnapshot = await get(questionRef);
+                  
+                  if (questionSnapshot.exists()) {
+                    const fullQuestionData = questionSnapshot.val();
+                    questions.push({
+                      id: questionData,
+                      ...fullQuestionData
+                    });
+                  }
+                } 
+                // Handle case where question data is directly embedded
+                else {
+                  // Process question text
+                  const questionText = questionData.question || questionData.text || '';
+                  
+                  // Process answers
+                  let answers = [];
+                  
+                  // Handle different formats of answers
+                  if (questionData.answers) {
+                    if (Array.isArray(questionData.answers)) {
+                      answers = questionData.answers;
+                    } else if (typeof questionData.answers === 'object') {
+                      // Convert object to array
+                      for (const answerId of Object.keys(questionData.answers)) {
+                        answers.push({
+                          id: answerId,
+                          ...questionData.answers[answerId]
+                        });
+                      }
+                    }
+                  } else if (questionData.options) {
+                    // Convert options array to answers format with proper structure
+                    answers = questionData.options.map((option, index) => ({
+                      id: String(index),
+                      text: option,
+                      isCorrect: index === parseInt(questionData.correctAnswer)
+                    }));
+                  }
+                  
+                  // Determine correct answer ID
+                  let correctAnswer = null;
+                  
+                  // First check if the question has a correctAnswer property
+                  if (questionData.correctAnswer !== undefined) {
+                    correctAnswer = String(questionData.correctAnswer);
+                  } else {
+                    // Otherwise, find the correct answer from the isCorrect property
+                    const correctAns = answers.find(a => a.isCorrect);
+                    if (correctAns) {
+                      correctAnswer = correctAns.id;
+                    }
+                  }
+                  
+                  // Add question with its answers to the questions array
+                  questions.push({
+                    id: questionId,
+                    question: questionText,
+                    text: questionText,
+                    answers,
+                    correctAnswer
+                  });
+                }
               }
             }
           }
@@ -86,7 +187,7 @@ export default function QuizPage({ params }) {
           });
           
           // Initialize userAnswers array
-          setUserAnswers(new Array(fetchedQuiz.questions.length).fill(null));
+          setUserAnswers(new Array(questions.length).fill(null));
         } else {
           setError('Quiz not found');
         }

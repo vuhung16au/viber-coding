@@ -1,7 +1,7 @@
 'use client';
 
 import { createContext, useContext, useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import en from '../translations/en';
 import vi from '../translations/vi';
 import fr from '../translations/fr';
@@ -34,6 +34,7 @@ const LanguageContext = createContext();
 export function LanguageProvider({ children, initialLocale }) {
   const [locale, setLocale] = useState(initialLocale || 'en');
   const router = useRouter();
+  const pathname = usePathname ? usePathname() : null;
   
   // Load saved language preference from localStorage on component mount
   useEffect(() => {
@@ -47,8 +48,19 @@ export function LanguageProvider({ children, initialLocale }) {
     if (translations[newLocale]) {
       setLocale(newLocale);
       localStorage.setItem('language', newLocale);
-      // Redirect to the localized route
-      router.push('/' + newLocale);
+      
+      // Get the current path and replace the locale part
+      if (pathname) {
+        // Remove any existing locale prefix from the pathname
+        const pathWithoutLocale = pathname.replace(/^\/[a-z]{2}(?=\/|$)/, '');
+        // Create the new path with the new locale
+        const newPath = `/${newLocale}${pathWithoutLocale}`;
+        // Navigate to the new path
+        router.push(newPath);
+      } else {
+        // Fallback to just the locale if pathname is not available
+        router.push('/' + newLocale);
+      }
     }
   };
 
