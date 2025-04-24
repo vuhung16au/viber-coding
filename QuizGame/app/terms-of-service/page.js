@@ -1,8 +1,9 @@
 'use client';
 
-import { useLanguage } from '../context/LanguageContext';
+import { LanguageProvider, useLanguage } from '../context/LanguageContext';
 
-export default function TermsOfServicePage() {
+// Create a wrapper component that uses the language provider
+function TermsOfServiceContent() {
   const { t } = useLanguage();
   
   return (
@@ -85,5 +86,14 @@ export default function TermsOfServicePage() {
         </section>
       </div>
     </div>
+  );
+}
+
+// Main page component that provides the language context
+export default function TermsOfServicePage() {
+  return (
+    <LanguageProvider initialLocale="en">
+      <TermsOfServiceContent />
+    </LanguageProvider>
   );
 }

@@ -7,14 +7,8 @@ module.exports = {
   trailingSlash: false,
   // Configure which pages should be statically generated
   output: 'standalone',
-  // Skip static generation for pages that require authentication
-  experimental: {
-    // Skip problematic pages during static generation
-    skipTrailingSlashRedirect: true,
-    skipMiddlewareUrlNormalize: true,
-  },
-  // Configure which routes require dynamic rendering and are not pre-rendered
-  async generateStaticParams() {
-    return [];
-  }
+  // Move these options outside of experimental as they're now standard config options
+  skipTrailingSlashRedirect: true,
+  skipMiddlewareUrlNormalize: true,
+  // Remove the invalid generateStaticParams from config (it belongs in page components)
 }
