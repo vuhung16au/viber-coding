@@ -100,11 +100,11 @@ export default function QuizPage() {
                       }
                     }
                   } else if (questionData.options) {
-                    // Convert options array to answers format
+                    // Convert options array to answers format with proper structure
                     answers = questionData.options.map((option, index) => ({
                       id: String(index),
                       text: option,
-                      isCorrect: index === questionData.correctAnswer
+                      isCorrect: index === parseInt(questionData.correctAnswer)
                     }));
                   }
                   
@@ -113,7 +113,7 @@ export default function QuizPage() {
                   
                   // First check if the question has a correctAnswer property
                   if (questionData.correctAnswer !== undefined) {
-                    correctAnswer = questionData.correctAnswer;
+                    correctAnswer = String(questionData.correctAnswer);
                   } else {
                     // Otherwise, find the correct answer from the isCorrect property
                     const correctAns = answers.find(a => a.isCorrect);

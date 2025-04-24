@@ -15,14 +15,9 @@ module.exports = {
   // Add proper configuration for middleware
   experimental: {
     serverComponentsExternalPackages: ["firebase"],
-    // Move serverActions to experimental section
+    // Configure server actions
     serverActions: {
       bodySizeLimit: '2mb',
-    },
-    // Add proper React configuration for the use() hook
-    react: {
-      serverComponents: true,
-      serverActions: true,
     },
   },
 }
