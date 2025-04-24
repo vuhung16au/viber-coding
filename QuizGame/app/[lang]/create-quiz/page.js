@@ -3,11 +3,12 @@
 import React from 'react';
 import QuizCreationForm from '../../components/QuizCreationForm';
 import { useTranslation } from '../../translations';
+import { useParams } from 'next/navigation';
 
-export default function CreateQuizPage({ params }) {
-  // Use React.use to unwrap the params object safely
-  const unwrappedParams = React.use(params);
-  const { t } = useTranslation(unwrappedParams?.lang || 'en');
+export default function CreateQuizPage() {
+  const params = useParams();
+  const lang = params?.lang || 'en';
+  const { t } = useTranslation(lang);
   
   return (
     <div className="container mx-auto px-4 py-8">

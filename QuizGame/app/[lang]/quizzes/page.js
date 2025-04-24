@@ -4,11 +4,16 @@ import { useState, useEffect } from 'react';
 import { ref, get } from 'firebase/database';
 import { db } from '@/app/firebase/config';
 import QuizCard from '@/app/components/QuizCard';
+import { useRouter } from 'next/navigation';
+import { useParams } from 'next/navigation';
 
 export default function QuizzesPage() {
   const [quizzes, setQuizzes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const router = useRouter();
+  const params = useParams();
+  const lang = params.lang || 'en';
 
   useEffect(() => {
     const fetchQuizzes = async () => {
@@ -38,7 +43,8 @@ export default function QuizzesPage() {
   }, []);
 
   const handleStartQuiz = (quizId) => {
-    window.location.href = `/quiz/${quizId}`;
+    // Use the Next.js router to navigate instead of window.location
+    router.push(`/${lang}/quiz/${quizId}`);
   };
 
   if (loading) {

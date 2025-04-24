@@ -1,16 +1,26 @@
 import Image from 'next/image';
 import Link from 'next/link';
+import { useParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 
 export default function QuizCard({ quiz, showActions = false, onEdit, onDelete, onStart }) {
   // Handle possible missing fields gracefully
   const questionCount = Array.isArray(quiz.questions) ? quiz.questions.length : 0;
   const coverImage = quiz.coverImage || quiz.image || '/images/default-quiz.jpg';
+  const router = useRouter();
+  const params = useParams();
+  const lang = params?.lang || 'en';
   
   // Process tags to handle both array and object formats from Firebase
   const tags = quiz.tags ? 
     (Array.isArray(quiz.tags) ? quiz.tags : Object.values(quiz.tags)) : 
     [];
   
+  // Default handler if onStart isn't provided
+  const defaultStartHandler = () => {
+    router.push(`/${lang}/quiz/${quiz.id}`);
+  };
+
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden transition-transform hover:scale-105">
       <div className="relative w-full h-48" style={{ position: 'relative', height: '12rem' }}>
@@ -28,7 +38,7 @@ export default function QuizCard({ quiz, showActions = false, onEdit, onDelete, 
         <p className="text-gray-600 dark:text-gray-300 mb-4">{quiz.description}</p>
         
         {/* Quiz tags */}
-        {quiz.tags && quiz.tags.trim() !== '' && (
+        {quiz.tags && quiz.tags.trim !== undefined && quiz.tags.trim() !== '' && (
           <div className="flex flex-wrap gap-1 mt-2">
             {quiz.tags.split(', ').map((tag, index) => (
               <span
@@ -45,7 +55,7 @@ export default function QuizCard({ quiz, showActions = false, onEdit, onDelete, 
         
         <div className="flex flex-wrap gap-2">
           <button 
-            onClick={onStart || (() => window.location.href = `/quiz/${quiz.id}`)}
+            onClick={onStart || defaultStartHandler}
             className="inline-block px-6 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors"
           >
             Start Quiz

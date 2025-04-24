@@ -48,9 +48,12 @@ export default function Login() {
     } catch (error) {
       if (error.code === 'auth/configuration-not-found') {
         setError('Google authentication is not properly configured. Please contact support.');
+      } else if (error.code === 'auth/unauthorized-domain') {
+        setError('This domain is not authorized for Google sign-in. Please add "quiz-gotitright.vercel.app" to the Firebase console under Authentication -> Settings -> Authorized domains.');
       } else {
         setError('Failed to log in with Google: ' + error.message);
       }
+      console.error('Google sign-in error:', error);
     } finally {
       setLoading(false);
     }
