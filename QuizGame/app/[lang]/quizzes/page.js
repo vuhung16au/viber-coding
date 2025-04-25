@@ -287,8 +287,63 @@ export default function QuizzesPage() {
     }
   };
 
+  // Handle deleting a quiz
+  const handleDeleteQuiz = async (quizId) => {
+    if (!currentUser) {
+      router.push(`/${lang}/login`);
+      return;
+    }
+    
+    try {
+      // Import the deleteQuiz function
+      const { deleteQuiz } = await import('@/app/firebase/database');
+      
+      // Delete the quiz
+      const success = await deleteQuiz(quizId);
+      
+      if (success) {
+        // Remove the quiz from our state
+        setQuizzes(prevQuizzes => prevQuizzes.filter(quiz => quiz.id !== quizId));
+        setFilteredQuizzes(prevQuizzes => prevQuizzes.filter(quiz => quiz.id !== quizId));
+        
+        // Show success message
+        setDuplicateSuccess("Quiz deleted successfully!");
+        
+        // Clear success message after 3 seconds
+        setTimeout(() => {
+          setDuplicateSuccess(null);
+        }, 3000);
+      } else {
+        setError('Failed to delete quiz. Please try again.');
+        
+        // Clear error message after 3 seconds
+        setTimeout(() => {
+          setError(null);
+        }, 3000);
+      }
+    } catch (err) {
+      console.error('Error deleting quiz:', err);
+      setError('Failed to delete quiz. Please try again.');
+      
+      // Clear error message after 3 seconds
+      setTimeout(() => {
+        setError(null);
+      }, 3000);
+    }
+  };
+
   const handleStartQuiz = (quizId) => {
     router.push(`/${lang}/quiz/${quizId}`);
+  };
+
+  // Handle editing a quiz
+  const handleEditQuiz = (quizId) => {
+    if (!currentUser) {
+      router.push(`/${lang}/login`);
+      return;
+    }
+    
+    router.push(`/${lang}/create-quiz?edit=${quizId}`);
   };
 
   if (loading) {
@@ -415,6 +470,8 @@ export default function QuizzesPage() {
                   onStart={() => handleStartQuiz(quiz.id)}
                   showActions={!!currentUser}
                   onDuplicate={() => handleDuplicateQuiz(quiz.id)}
+                  onDelete={() => handleDeleteQuiz(quiz.id)}
+                  onEdit={() => handleEditQuiz(quiz.id)}
                 />
               ))}
             </div>

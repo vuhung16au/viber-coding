@@ -1,17 +1,20 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import { useAuth } from '../firebase/auth';
 import { db } from '../firebase/config';
-import { ref, push, set, serverTimestamp, get } from 'firebase/database';
+import { ref, push, set, serverTimestamp, get, update } from 'firebase/database';
 import { recordQuizCreated } from '../firebase/statistics';
 import { getAllCategories } from '../firebase/database';
 import { generateQuizWithAI } from '../services/geminiService';
 
 export default function QuizCreationForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const editQuizId = searchParams ? searchParams.get('edit') : null;
+  const isEditMode = !!editQuizId;
   const { currentUser } = useAuth();
   const [quizData, setQuizData] = useState({
     title: '',
@@ -41,6 +44,101 @@ export default function QuizCreationForm() {
   const [selectedFile, setSelectedFile] = useState(null);
   const [categories, setCategories] = useState([]); 
   const [loadingCategories, setLoadingCategories] = useState(true);
+  const [loadingQuiz, setLoadingQuiz] = useState(isEditMode);
+
+  // Fetch quiz data if in edit mode
+  useEffect(() => {
+    const fetchQuizForEdit = async () => {
+      if (!editQuizId) return;
+
+      try {
+        setLoadingQuiz(true);
+        const quizRef = ref(db, `quizzes/${editQuizId}`);
+        const snapshot = await get(quizRef);
+
+        if (snapshot.exists()) {
+          const quizToEdit = snapshot.val();
+          
+          // Check if user has permission to edit
+          if (quizToEdit.userId !== currentUser?.uid) {
+            setErrorMessage("You don't have permission to edit this quiz");
+            return;
+          }
+
+          // Create a copy of the original quiz data
+          const editData = {
+            title: quizToEdit.title || '',
+            description: quizToEdit.description || '',
+            coverImage: quizToEdit.coverImage || '/images/default-quiz.jpg',
+            category: quizToEdit.category || '',
+            categoryId: quizToEdit.categoryId || '',
+            tags: quizToEdit.tags || '',
+            isFeatured: quizToEdit.isFeatured || false,
+            questions: []
+          };
+
+          // Fetch questions
+          if (Array.isArray(quizToEdit.questions)) {
+            for (const questionId of quizToEdit.questions) {
+              const questionRef = ref(db, `questions/${questionId}`);
+              const questionSnapshot = await get(questionRef);
+              
+              if (questionSnapshot.exists()) {
+                const questionData = questionSnapshot.val();
+                let options = [];
+                let correctAnswer = '';
+
+                // Fetch answers for this question
+                if (Array.isArray(questionData.answers)) {
+                  for (const answerId of questionData.answers) {
+                    const answerRef = ref(db, `answers/${answerId}`);
+                    const answerSnapshot = await get(answerRef);
+                    
+                    if (answerSnapshot.exists()) {
+                      const answerData = answerSnapshot.val();
+                      options.push(answerData.answer);
+                      if (answerData.isCorrect) {
+                        correctAnswer = answerData.answer;
+                      }
+                    }
+                  }
+                }
+
+                // Add the question to our questions array
+                if (options.length > 0) {
+                  editData.questions.push({
+                    id: editData.questions.length + 1,
+                    question: questionData.question,
+                    options,
+                    correctAnswer
+                  });
+                }
+              }
+            }
+          }
+
+          // Set the form data
+          setQuizData(editData);
+          
+          // If the quiz has a custom image, set the preview
+          if (quizToEdit.coverImage && quizToEdit.coverImage !== '/images/default-quiz.jpg') {
+            setImagePreview(quizToEdit.coverImage);
+          }
+        } else {
+          setErrorMessage("Quiz not found");
+        }
+      } catch (error) {
+        console.error("Error fetching quiz for edit:", error);
+        setErrorMessage("Failed to load quiz for editing");
+      } finally {
+        setLoadingQuiz(false);
+      }
+    };
+
+    if (isEditMode && currentUser) {
+      fetchQuizForEdit();
+    }
+  }, [editQuizId, currentUser]);
 
   // Fetch categories from the database
   useEffect(() => {
@@ -234,7 +332,7 @@ export default function QuizCreationForm() {
       questionIds.push(questionId);
     }
     
-    // Ensure category has a default value if not provided and map to proper display format
+    // Ensure category has a default value if not provided
     const categoryMappings = {
       'general': 'General Knowledge',
       'science': 'Science & Technology',
@@ -270,10 +368,75 @@ export default function QuizCreationForm() {
       isFeatured: quizData.isFeatured || false // Add isFeatured property
     });
     
-    // Record quiz creation in statistics
-    if (userId && quizId) {
-      await recordQuizCreated(userId, quizId);
+    return quizId;
+  };
+
+  // Update an existing quiz in Firebase Realtime Database
+  const updateQuiz = async (quizId, quizData, userId) => {
+    // Create answers for each question
+    const questionIds = [];
+    
+    for (const questionData of quizData.questions) {
+      const answerIds = [];
+      
+      // Create each answer
+      for (const option of questionData.options) {
+        const answersRef = ref(db, 'answers');
+        const newAnswerRef = push(answersRef);
+        const answerId = newAnswerRef.key;
+        
+        await set(newAnswerRef, {
+          answer: option,
+          isCorrect: option === questionData.correctAnswer
+        });
+        
+        answerIds.push(answerId);
+      }
+      
+      // Create the question with answer references
+      const questionsRef = ref(db, 'questions');
+      const newQuestionRef = push(questionsRef);
+      const questionId = newQuestionRef.key;
+      
+      await set(newQuestionRef, {
+        question: questionData.question,
+        answers: answerIds
+      });
+      
+      questionIds.push(questionId);
     }
+    
+    // Ensure category has a default value if not provided
+    const categoryMappings = {
+      'general': 'General Knowledge',
+      'science': 'Science & Technology',
+      'technology': 'Science & Technology',
+      'history': 'History',
+      'geography': 'Geography',
+      'entertainment': 'Pop Culture',
+      'sports': 'Sports',
+      'other': 'Other'
+    };
+    
+    const category = quizData.category && quizData.category.trim() !== '' 
+      ? (categoryMappings[quizData.category] || quizData.category)
+      : 'General Knowledge';
+      
+    // Update the quiz with new question references
+    const quizRef = ref(db, `quizzes/${quizId}`);
+    
+    await update(quizRef, {
+      title: quizData.title,
+      description: quizData.description,
+      coverImage: quizData.coverImage,
+      category: category,
+      categoryId: quizData.categoryId || null,
+      tags: quizData.tags || '',
+      questions: questionIds,
+      // Don't update userId - keep the original creator
+      updatedAt: serverTimestamp(),
+      isFeatured: quizData.isFeatured || false
+    });
     
     return quizId;
   };
@@ -375,18 +538,38 @@ export default function QuizCreationForm() {
         quizToSave.coverImage = '/images/default-quiz.jpg';
       }
       
-      // Save the quiz to Realtime Database
-      const quizId = await createQuiz(quizToSave, currentUser.uid);
+      let quizId;
+      if (isEditMode) {
+        // Update existing quiz
+        quizId = await updateQuiz(editQuizId, quizToSave, currentUser.uid);
+      } else {
+        // Create new quiz
+        quizId = await createQuiz(quizToSave, currentUser.uid);
+        
+        // Record quiz creation in statistics (only for new quizzes)
+        if (currentUser.uid && quizId) {
+          await recordQuizCreated(currentUser.uid, quizId);
+        }
+      }
       
       // Redirect to the quizzes page without showing an alert
       router.push('/quizzes');
     } catch (error) {
-      console.error('Error creating quiz:', error);
-      setErrorMessage(`Failed to create quiz: ${error.message || 'Unknown error'}`);
+      console.error('Error saving quiz:', error);
+      setErrorMessage(`Failed to save quiz: ${error.message || 'Unknown error'}`);
     } finally {
       setIsSubmitting(false);
     }
   };
+
+  if (loadingQuiz) {
+    return (
+      <div className="flex justify-center items-center py-12">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+        <span className="ml-3 text-gray-700 dark:text-gray-300">Loading quiz data...</span>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-4xl mx-auto bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
@@ -405,7 +588,9 @@ export default function QuizCreationForm() {
       <form onSubmit={handleSubmit}>
         {/* Quiz Basic Details Section */}
         <div className="mb-8">
-          <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-white">Quiz Details</h2>
+          <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-white">
+            {isEditMode ? 'Edit Quiz' : 'Quiz Details'}
+          </h2>
           
           <div className="mb-4">
             <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">
@@ -708,7 +893,9 @@ export default function QuizCreationForm() {
             disabled={isSubmitting}
             className={`w-full py-3 ${isSubmitting ? 'bg-blue-400' : 'bg-blue-600 hover:bg-blue-700'} text-white font-medium rounded-lg transition-colors`}
           >
-            {isSubmitting ? 'Creating Quiz...' : 'Create Quiz'}
+            {isSubmitting 
+              ? (isEditMode ? 'Updating Quiz...' : 'Creating Quiz...') 
+              : (isEditMode ? 'Update Quiz' : 'Create Quiz')}
           </button>
         </div>
       </form>
