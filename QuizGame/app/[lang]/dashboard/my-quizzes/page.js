@@ -3,12 +3,13 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { useAuth } from '../../../firebase/auth';
-import { db } from '../../../firebase/config';
+import { useAuth } from '../../../../app/firebase/auth';
+import { db } from '../../../../app/firebase/config';
 import { ref, get, query, orderByChild, equalTo } from 'firebase/database';
-import QuizCard from '../../../components/QuizCard';
-import { useLanguage } from '../../../context/LanguageContext';
-import { deleteQuiz } from '../../../firebase/database';
+import QuizCard from '../../../../app/components/QuizCard';
+import { useLanguage } from '../../../../app/context/LanguageContext';
+import { deleteQuiz } from '../../../../app/firebase/database';
+import Pagination from '../../../../app/components/Pagination';
 
 export default function MyQuizzes() {
   const { currentUser } = useAuth();
@@ -19,6 +20,16 @@ export default function MyQuizzes() {
   const [error, setError] = useState(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(null);
+  const [duplicateLoading, setDuplicateLoading] = useState(false);
+  
+  // Search functionality
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filteredQuizzes, setFilteredQuizzes] = useState([]);
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(20);
+  const [paginatedQuizzes, setPaginatedQuizzes] = useState([]);
 
   // If not logged in, redirect to login page
   useEffect(() => {
@@ -53,8 +64,10 @@ export default function MyQuizzes() {
           });
           
           setMyQuizzes(sortedQuizzes);
+          setFilteredQuizzes(sortedQuizzes); // Initialize filtered quizzes with all quizzes
         } else {
           setMyQuizzes([]);
+          setFilteredQuizzes([]);
         }
       } catch (err) {
         console.error('Error fetching quizzes:', err);
@@ -66,6 +79,116 @@ export default function MyQuizzes() {
     
     fetchMyQuizzes();
   }, [currentUser]);
+
+  // Search functionality
+  useEffect(() => {
+    if (searchTerm.trim() === '') {
+      setFilteredQuizzes(myQuizzes);
+      setCurrentPage(1); // Reset to first page when clearing search
+      return;
+    }
+
+    const normalizedSearchTerm = searchTerm.toLowerCase().trim();
+    
+    const filtered = myQuizzes.filter(quiz => {
+      // Search in title and description
+      if (
+        quiz.title?.toLowerCase().includes(normalizedSearchTerm) ||
+        quiz.description?.toLowerCase().includes(normalizedSearchTerm)
+      ) {
+        return true;
+      }
+      
+      // Search in categories (can be string, array, or object)
+      let categories = [];
+      if (quiz.categories) {
+        if (typeof quiz.categories === 'string') {
+          categories = [quiz.categories];
+        } else if (Array.isArray(quiz.categories)) {
+          categories = quiz.categories;
+        } else if (typeof quiz.categories === 'object') {
+          categories = Object.values(quiz.categories);
+        }
+        
+        if (categories.some(category => 
+          category.toLowerCase().includes(normalizedSearchTerm)
+        )) {
+          return true;
+        }
+      }
+      
+      // Search in tags (can be string, array, or object)
+      let tags = [];
+      if (quiz.tags) {
+        if (typeof quiz.tags === 'string') {
+          tags = quiz.tags.split(',').map(tag => tag.trim());
+        } else if (Array.isArray(quiz.tags)) {
+          tags = quiz.tags;
+        } else if (typeof quiz.tags === 'object') {
+          tags = Object.values(quiz.tags);
+        }
+        
+        if (tags.some(tag => 
+          tag.toLowerCase().includes(normalizedSearchTerm)
+        )) {
+          return true;
+        }
+      }
+      
+      // Search in questions and answers
+      if (quiz.questions) {
+        const questions = Array.isArray(quiz.questions) 
+          ? quiz.questions 
+          : typeof quiz.questions === 'object'
+            ? Object.values(quiz.questions)
+            : [];
+            
+        return questions.some(question => {
+          // Search in question text
+          if (question.text?.toLowerCase().includes(normalizedSearchTerm)) {
+            return true;
+          }
+          
+          // Search in answers
+          if (question.answers) {
+            const answers = Array.isArray(question.answers)
+              ? question.answers
+              : typeof question.answers === 'object'
+                ? Object.values(question.answers)
+                : [];
+                
+            return answers.some(answer => 
+              answer.text?.toLowerCase().includes(normalizedSearchTerm)
+            );
+          }
+          
+          return false;
+        });
+      }
+      
+      return false;
+    });
+    
+    setFilteredQuizzes(filtered);
+    setCurrentPage(1); // Reset to first page when search changes
+  }, [searchTerm, myQuizzes]);
+
+  // Effect to handle pagination
+  useEffect(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    setPaginatedQuizzes(filteredQuizzes.slice(startIndex, endIndex));
+  }, [currentPage, itemsPerPage, filteredQuizzes]);
+
+  // Handle search input change
+  const handleSearchChange = (e) => {
+    setSearchTerm(e.target.value);
+  };
+
+  // Clear search
+  const clearSearch = () => {
+    setSearchTerm('');
+  };
 
   // Handle editing a quiz
   const handleEditQuiz = (quizId) => {
@@ -87,6 +210,7 @@ export default function MyQuizzes() {
       if (success) {
         // Remove the quiz from the local state
         setMyQuizzes((prevQuizzes) => prevQuizzes.filter((quiz) => quiz.id !== quizId));
+        setFilteredQuizzes((prevQuizzes) => prevQuizzes.filter((quiz) => quiz.id !== quizId));
       } else {
         setError('Failed to delete quiz. Please try again.');
       }
@@ -99,9 +223,80 @@ export default function MyQuizzes() {
     }
   };
 
+  // Handle duplicating a quiz
+  const handleDuplicateQuiz = async (quizId) => {
+    if (!currentUser) return;
+    
+    setDuplicateLoading(true);
+    setError(null);
+    
+    try {
+      // Import the function from the correct path
+      const { duplicateQuiz } = await import('../../../../app/firebase/database');
+      
+      // Duplicate the quiz
+      const newQuizId = await duplicateQuiz(quizId, currentUser.uid);
+      
+      if (newQuizId) {
+        // Get the new quiz data to add to state
+        const quizRef = ref(db, `quizzes/${newQuizId}`);
+        const snapshot = await get(quizRef);
+        
+        if (snapshot.exists()) {
+          const newQuiz = {
+            id: newQuizId,
+            ...snapshot.val()
+          };
+          
+          // Add the new quiz to our state
+          setMyQuizzes(prevQuizzes => [newQuiz, ...prevQuizzes]);
+          setFilteredQuizzes(prevQuizzes => [newQuiz, ...prevQuizzes]);
+          setCurrentPage(1); // Go back to first page to show the new quiz
+          
+          // Show success feedback
+          setError({ 
+            type: 'success', 
+            message: 'Quiz duplicated successfully!' 
+          });
+          
+          // Clear success message after 3 seconds
+          setTimeout(() => {
+            setError(null);
+          }, 3000);
+        }
+      } else {
+        setError({ 
+          type: 'error', 
+          message: 'Failed to duplicate quiz. Please try again.' 
+        });
+      }
+    } catch (err) {
+      console.error('Error duplicating quiz:', err);
+      setError({ 
+        type: 'error', 
+        message: 'Failed to duplicate quiz. Please try again.' 
+      });
+    } finally {
+      setDuplicateLoading(false);
+    }
+  };
+
   // Cancel delete confirmation
   const cancelDelete = () => {
     setConfirmDelete(null);
+  };
+
+  // Handle page change
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
+    // Scroll to top of the quiz list
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  // Handle items per page change
+  const handleItemsPerPageChange = (newValue) => {
+    setItemsPerPage(newValue);
+    setCurrentPage(1); // Reset to first page when changing items per page
   };
 
   if (!currentUser) {
@@ -125,27 +320,85 @@ export default function MyQuizzes() {
             {t('common.createQuiz')}
           </Link>
         </div>
+        
+        {/* Search Box */}
+        <div className="mb-6">
+          <div className="relative">
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={handleSearchChange}
+              placeholder={t('search.searchQuizzes')}
+              className="w-full px-4 py-2 pl-10 pr-10 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+            />
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </div>
+            {searchTerm && (
+              <button
+                onClick={clearSearch}
+                className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                aria-label="Clear search"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                </svg>
+              </button>
+            )}
+          </div>
+          {filteredQuizzes.length === 0 && searchTerm && !loading && (
+            <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
+              {t('search.noQuizzesFound')}
+            </p>
+          )}
+        </div>
 
         {loading ? (
           <div className="flex justify-center py-8">
             <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-blue-500"></div>
           </div>
         ) : error ? (
-          <div className="bg-red-100 dark:bg-red-900/30 p-4 rounded-lg text-red-700 dark:text-red-300">
-            {error}
-          </div>
-        ) : myQuizzes.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {myQuizzes.map(quiz => (
-              <QuizCard 
-                key={quiz.id} 
-                quiz={quiz}
-                showActions={true}
-                onEdit={() => handleEditQuiz(quiz.id)}
-                onDelete={() => handleDeleteQuiz(quiz.id)}
+          typeof error === 'string' ? (
+            <div className="bg-red-100 dark:bg-red-900/30 p-4 rounded-lg text-red-700 dark:text-red-300">
+              {error}
+            </div>
+          ) : error.type === 'success' ? (
+            <div className="bg-green-100 dark:bg-green-900/30 p-4 rounded-lg text-green-700 dark:text-green-300">
+              {error.message}
+            </div>
+          ) : (
+            <div className="bg-red-100 dark:bg-red-900/30 p-4 rounded-lg text-red-700 dark:text-red-300">
+              {error.message}
+            </div>
+          )
+        ) : filteredQuizzes.length > 0 ? (
+          <>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              {paginatedQuizzes.map(quiz => (
+                <QuizCard 
+                  key={quiz.id} 
+                  quiz={quiz}
+                  showActions={true}
+                  onEdit={() => handleEditQuiz(quiz.id)}
+                  onDelete={() => handleDeleteQuiz(quiz.id)}
+                  onDuplicate={() => handleDuplicateQuiz(quiz.id)} // Add onDuplicate handler
+                />
+              ))}
+            </div>
+            
+            {/* Pagination */}
+            {filteredQuizzes.length > 0 && (
+              <Pagination
+                totalItems={filteredQuizzes.length}
+                itemsPerPage={itemsPerPage}
+                currentPage={currentPage}
+                onPageChange={handlePageChange}
+                onItemsPerPageChange={handleItemsPerPageChange}
               />
-            ))}
-          </div>
+            )}
+          </>
         ) : (
           <div className="text-center py-12">
             <h2 className="text-xl font-semibold text-gray-700 dark:text-gray-300 mb-4">

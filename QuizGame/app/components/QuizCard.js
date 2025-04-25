@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useRouter } from 'next/navigation';
 
-export default function QuizCard({ quiz, showActions = false, onEdit, onDelete, onStart }) {
+export default function QuizCard({ quiz, showActions = false, onEdit, onDelete, onDuplicate, onStart }) {
   // Handle possible missing fields gracefully
   const questionCount = Array.isArray(quiz.questions) ? quiz.questions.length : 0;
   // Always use default-quiz.jpg as the main image or fallback for missing images
@@ -87,6 +87,13 @@ export default function QuizCard({ quiz, showActions = false, onEdit, onDelete, 
                 className="inline-block px-6 py-2 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 transition-colors"
               >
                 Edit
+              </button>
+              <button 
+                onClick={onDuplicate}
+                className="inline-block px-6 py-2 bg-purple-600 text-white font-medium rounded-lg hover:bg-purple-700 transition-colors"
+                title="Create a copy of this quiz"
+              >
+                Duplicate
               </button>
               <button 
                 onClick={onDelete}

@@ -67,6 +67,54 @@ export const deleteQuiz = async (quizId) => {
   return quizId;
 };
 
+/**
+ * Duplicate an existing quiz for a user
+ * @param {string} quizId - Original quiz ID to duplicate
+ * @param {string} userId - User ID who will own the duplicated quiz
+ * @returns {Promise<string|null>} New quiz ID or null if failed
+ */
+export const duplicateQuiz = async (quizId, userId) => {
+  if (!quizId || !userId) {
+    console.error('Missing required parameters for duplicating quiz');
+    return null;
+  }
+  
+  try {
+    // Get the original quiz
+    const originalQuiz = await getQuizById(quizId);
+    
+    if (!originalQuiz) {
+      console.error('Original quiz not found');
+      return null;
+    }
+    
+    // Create a new quiz entry with modified data
+    const quizzesRef = ref(database, 'quizzes');
+    const newQuizRef = push(quizzesRef);
+    const newQuizId = newQuizRef.key;
+    
+    // Create a clean copy of the quiz data without problematic properties
+    const duplicatedQuizData = { ...originalQuiz };
+    
+    // Set new quiz properties
+    duplicatedQuizData.title = `${originalQuiz.title} (Copy)`;
+    duplicatedQuizData.userId = userId;
+    duplicatedQuizData.createdAt = serverTimestamp();
+    
+    // Remove properties that shouldn't be duplicated or cause Firebase errors
+    delete duplicatedQuizData.id;
+    delete duplicatedQuizData.updatedAt;
+    
+    // Ensure we have the data in the right format
+    await set(newQuizRef, duplicatedQuizData);
+    
+    return newQuizId;
+  } catch (error) {
+    console.error('Error duplicating quiz:', error);
+    return null;
+  }
+};
+
 // --------- QUESTION OPERATIONS ---------
 
 // Create a new question

@@ -9,6 +9,7 @@ import { ref, get, query, orderByChild, limitToLast, equalTo } from 'firebase/da
 import QuizCard from './QuizCard';
 import { useLanguage } from '../context/LanguageContext';
 import { getAllCategories } from '../firebase/database';
+import Pagination from './Pagination';
 
 export default function Dashboard() {
   const { currentUser } = useAuth();
@@ -33,6 +34,11 @@ export default function Dashboard() {
   });
   const [categories, setCategories] = useState([]); // State for categories from database
   const [loadingCategories, setLoadingCategories] = useState(true); // Loading state for categories
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(20);
+  const [paginatedLatestQuizzes, setPaginatedLatestQuizzes] = useState([]);
   
   // If not logged in, redirect to login page
   useEffect(() => {
@@ -84,8 +90,8 @@ export default function Dashboard() {
             return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
           });
           
-          // Set latest quizzes (up to 10)
-          setLatestQuizzes(sortedQuizzes.slice(0, 10));
+          // Set latest quizzes
+          setLatestQuizzes(sortedQuizzes);
           
           // Get featured quizzes
           const featuredQuizzesArray = quizzesArray.filter(quiz => quiz.isFeatured === true).slice(0, 5);
@@ -237,6 +243,13 @@ export default function Dashboard() {
     }
   }, [currentUser]);
 
+  // Effect to handle pagination of latest quizzes
+  useEffect(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    setPaginatedLatestQuizzes(latestQuizzes.slice(startIndex, endIndex));
+  }, [currentPage, itemsPerPage, latestQuizzes]);
+
   // Fetch categories from the database
   useEffect(() => {
     const fetchCategories = async () => {
@@ -258,6 +271,19 @@ export default function Dashboard() {
 
     fetchCategories();
   }, []);
+
+  // Handle page change
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
+    // Scroll to top of the quiz list
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  // Handle items per page change
+  const handleItemsPerPageChange = (newValue) => {
+    setItemsPerPage(newValue);
+    setCurrentPage(1); // Reset to first page when changing items per page
+  };
 
   if (!currentUser) {
     return null; // Don't render anything while checking auth status
@@ -479,11 +505,24 @@ export default function Dashboard() {
               <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-blue-500"></div>
             </div>
           ) : latestQuizzes.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-              {latestQuizzes.slice(0, 4).map(quiz => (
-                <QuizCard key={quiz.id} quiz={quiz} />
-              ))}
-            </div>
+            <>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                {paginatedLatestQuizzes.map(quiz => (
+                  <QuizCard key={quiz.id} quiz={quiz} />
+                ))}
+              </div>
+              
+              {/* Pagination for Latest Quizzes */}
+              {latestQuizzes.length > itemsPerPage && (
+                <Pagination
+                  totalItems={latestQuizzes.length}
+                  itemsPerPage={itemsPerPage}
+                  currentPage={currentPage}
+                  onPageChange={handlePageChange}
+                  onItemsPerPageChange={handleItemsPerPageChange}
+                />
+              )}
+            </>
           ) : (
             <p className="text-gray-500 dark:text-gray-400 mb-4">
               {t('dashboard.noQuizzesFound')}

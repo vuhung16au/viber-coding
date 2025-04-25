@@ -6,6 +6,7 @@ import { useLanguage } from '../context/LanguageContext';
 import QuizCard from './QuizCard';
 import Link from 'next/link';
 import { getQuizzes, getMostPopularQuizzes, getRecentQuizzes } from '../firebase/database';
+import Pagination from './Pagination';
 
 export default function QuizzesContent() {
   const { currentUser } = useAuth();
@@ -17,6 +18,11 @@ export default function QuizzesContent() {
   const [activeTab, setActiveTab] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [filteredQuizzes, setFilteredQuizzes] = useState([]);
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(20);
+  const [paginatedQuizzes, setPaginatedQuizzes] = useState([]);
 
   useEffect(() => {
     const fetchQuizzes = async () => {
@@ -52,30 +58,66 @@ export default function QuizzesContent() {
       );
       setFilteredQuizzes(filtered);
     }
+    // Reset to first page when search query changes
+    setCurrentPage(1);
   }, [searchQuery, quizzes]);
+
+  // Effect to handle pagination of quizzes
+  useEffect(() => {
+    let quizzesToPaginate = [];
+    
+    switch (activeTab) {
+      case 'popular':
+        quizzesToPaginate = popularQuizzes;
+        break;
+      case 'recent':
+        quizzesToPaginate = recentQuizzes;
+        break;
+      case 'all':
+      default:
+        quizzesToPaginate = searchQuery ? filteredQuizzes : quizzes;
+        break;
+    }
+    
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    setPaginatedQuizzes(quizzesToPaginate.slice(startIndex, endIndex));
+  }, [currentPage, itemsPerPage, filteredQuizzes, quizzes, activeTab, popularQuizzes, recentQuizzes, searchQuery]);
 
   const handleTabChange = (tab) => {
     setActiveTab(tab);
     setSearchQuery('');
+    setCurrentPage(1); // Reset to first page when changing tabs
   };
 
   const handleSearchChange = (e) => {
     setSearchQuery(e.target.value);
   };
 
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
+    // Scroll to top of the quiz list
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleItemsPerPageChange = (newValue) => {
+    setItemsPerPage(newValue);
+    setCurrentPage(1); // Reset to first page when changing items per page
+  };
+
   const renderQuizList = () => {
-    let quizzesToShow = [];
+    let totalQuizzes = 0;
     
     switch (activeTab) {
       case 'popular':
-        quizzesToShow = popularQuizzes;
+        totalQuizzes = popularQuizzes.length;
         break;
       case 'recent':
-        quizzesToShow = recentQuizzes;
+        totalQuizzes = recentQuizzes.length;
         break;
       case 'all':
       default:
-        quizzesToShow = searchQuery ? filteredQuizzes : quizzes;
+        totalQuizzes = searchQuery ? filteredQuizzes.length : quizzes.length;
         break;
     }
 
@@ -87,7 +129,7 @@ export default function QuizzesContent() {
       );
     }
 
-    if (quizzesToShow.length === 0) {
+    if (totalQuizzes === 0) {
       return (
         <div className="text-center py-12 text-gray-600 dark:text-gray-400">
           {searchQuery 
@@ -98,11 +140,24 @@ export default function QuizzesContent() {
     }
 
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {quizzesToShow.map(quiz => (
-          <QuizCard key={quiz.id} quiz={quiz} />
-        ))}
-      </div>
+      <>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {paginatedQuizzes.map(quiz => (
+            <QuizCard key={quiz.id} quiz={quiz} />
+          ))}
+        </div>
+        
+        {/* Pagination */}
+        {totalQuizzes > 0 && (
+          <Pagination
+            totalItems={totalQuizzes}
+            itemsPerPage={itemsPerPage}
+            currentPage={currentPage}
+            onPageChange={handlePageChange}
+            onItemsPerPageChange={handleItemsPerPageChange}
+          />
+        )}
+      </>
     );
   };
 

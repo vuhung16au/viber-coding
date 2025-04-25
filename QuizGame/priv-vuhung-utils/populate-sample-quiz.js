@@ -24,12 +24,23 @@ const firebaseConfig = {
   databaseURL: process.env.NEXT_PUBLIC_FIREBASE_DATABASE_URL
 };
 
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-const database = getDatabase(app);
+// Parse command line arguments
+const args = process.argv.slice(2);
+let modelName = "gemini-2.0-flash-lite"; // Default model
+let targetCategories = null; // Default to all categories
 
-// Initialize the Gemini API with the API key from environment variables
-const genAI = new GoogleGenerativeAI(process.env.NEXT_PUBLIC_GEMINI_API_KEY);
+// Available models
+const AVAILABLE_MODELS = {
+  "gemini-2.5-flash": { name: "Gemini 2.5 Flash Preview 04-17", rpm: 10, tpm: 250000, rpd: 500 },
+  "gemini-2.5-pro-experimental": { name: "Gemini 2.5 Pro Experimental 03-25", rpm: 5, tpm: 250000, rpd: 25 },
+  "gemini-2.5-pro": { name: "Gemini 2.5 Pro Preview 03-25", rpm: null, tpm: null, rpd: null },
+  "gemini-2.0-flash": { name: "Gemini 2.0 Flash", rpm: 15, tpm: 1000000, rpd: 1500 },
+  "gemini-2.0-flash-experimental": { name: "Gemini 2.0 Flash Experimental", rpm: 10, tpm: 1000000, rpd: 1500 },
+  "gemini-2.0-flash-lite": { name: "Gemini 2.0 Flash-Lite", rpm: 30, tpm: 1000000, rpd: 1500 },
+  "gemini-1.5-flash": { name: "Gemini 1.5 Flash", rpm: 15, tpm: 1000000, rpd: 1500 },
+  "gemini-1.5-flash-8b": { name: "Gemini 1.5 Flash-8B", rpm: 15, tpm: 1000000, rpd: 1500 },
+  "gemini-1.5-pro": { name: "Gemini 1.5 Pro", rpm: 2, tpm: 32000, rpd: 50 }
+};
 
 // List of categories
 const categories = [
@@ -46,6 +57,88 @@ const categories = [
   'Food & Drink'
 ];
 
+// Handle --help option
+if (args.includes("--help") || args.includes("-h")) {
+  console.log("\nQuiz Game Database Population Script");
+  console.log("\nUsage:");
+  console.log("  node populate-sample-quiz.js [options]");
+  console.log("\nOptions:");
+  console.log("  --model <model-name>        Specify the Gemini model to use for generating quiz questions");
+  console.log("  --category <category-name>  Specify a category to populate (can be used multiple times)");
+  console.log("  --help, -h                  Display this help message");
+  console.log("\nAvailable Models:");
+  
+  Object.keys(AVAILABLE_MODELS).forEach(key => {
+    const model = AVAILABLE_MODELS[key];
+    const rpmStr = model.rpm ? `${model.rpm} RPM` : "N/A";
+    const tpmStr = model.tpm ? `${model.tpm} TPM` : "N/A";
+    const rpdStr = model.rpd ? `${model.rpd} RPD` : "N/A";
+    
+    console.log(`  ${key.padEnd(30)} ${model.name.padEnd(35)} ${rpmStr.padEnd(10)} ${tpmStr.padEnd(12)} ${rpdStr}`);
+  });
+  
+  console.log("\nAvailable Categories:");
+  categories.forEach(category => {
+    console.log(`  - ${category}`);
+  });
+  
+  process.exit(0);
+}
+
+// Handle --model option
+const modelIndex = args.indexOf("--model");
+if (modelIndex !== -1 && modelIndex + 1 < args.length) {
+  const requestedModel = args[modelIndex + 1];
+  if (AVAILABLE_MODELS[requestedModel]) {
+    modelName = requestedModel;
+    console.log(`Using model: ${AVAILABLE_MODELS[modelName].name}`);
+  } else {
+    console.warn(`Warning: Requested model "${requestedModel}" not found. Using default model.`);
+    console.log(`Available models: ${Object.keys(AVAILABLE_MODELS).join(", ")}`);
+  }
+} else {
+  console.log(`Using default model: ${AVAILABLE_MODELS[modelName].name}`);
+}
+
+// Handle --category option(s)
+const categoryIndices = [];
+for (let i = 0; i < args.length; i++) {
+  if (args[i] === "--category" && i + 1 < args.length) {
+    categoryIndices.push(i);
+  }
+}
+
+if (categoryIndices.length > 0) {
+  targetCategories = [];
+  categoryIndices.forEach(idx => {
+    const requestedCategory = args[idx + 1];
+    if (categories.includes(requestedCategory)) {
+      targetCategories.push(requestedCategory);
+    } else {
+      console.warn(`Warning: Requested category "${requestedCategory}" not found. Skipping.`);
+    }
+  });
+  
+  if (targetCategories.length > 0) {
+    console.log(`Targeting specific categories: ${targetCategories.join(", ")}`);
+  } else {
+    console.log("No valid categories specified. Using all categories.");
+    targetCategories = null;
+  }
+} else {
+  console.log("No specific categories selected. Will populate all categories.");
+}
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const database = getDatabase(app);
+
+// Initialize the Gemini API with the API key from environment variables
+const genAI = new GoogleGenerativeAI(process.env.NEXT_PUBLIC_GEMINI_API_KEY);
+
+// Get the generative model
+const model = genAI.getGenerativeModel({ model: modelName });
+
 // Sleep function to add delay between API calls
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -58,9 +151,6 @@ const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
  */
 const generateQuizWithAI = async (description, numQuestions = 10, retryCount = 3) => {
   try {
-    // Get the generative model
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro" });
-    
     // Create the prompt for the API
     const prompt = `Create a quiz about "${description}" with ${numQuestions} multiple-choice questions.
       Each question must have exactly 4 answer options.
@@ -398,7 +488,15 @@ const populateQuizzes = async () => {
     
     console.log("Existing quiz counts by category:", quizCountByCategory);
     
-    for (const category of categories) {
+    // Determine which categories to process
+    const categoriesToProcess = targetCategories || categories;
+    
+    for (const category of categoriesToProcess) {
+      if (!categories.includes(category)) {
+        console.log(`\nSkipping unknown category ${category}`);
+        continue;
+      }
+      
       const existingCount = quizCountByCategory[category] || 0;
       const numToCreate = Math.max(0, 10 - existingCount);
       
