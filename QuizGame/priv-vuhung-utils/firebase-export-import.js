@@ -116,6 +116,37 @@ async function importData(filename) {
 }
 
 /**
+ * Truncates all data in the Firebase database
+ */
+async function truncateData() {
+  try {
+    console.log('Preparing to truncate all data from Firebase database...');
+    
+    // Confirm with user before proceeding
+    console.log('WARNING: This will DELETE ALL DATA in your Firebase database.');
+    console.log('This action cannot be undone!');
+    console.log('Press CTRL+C to cancel or wait 10 seconds to continue...');
+    
+    // Wait for 10 seconds before proceeding to give user time to cancel
+    await new Promise(resolve => setTimeout(resolve, 10000));
+    
+    // After waiting, provide one more confirmation prompt
+    console.log('FINAL WARNING: Proceeding with database truncation in 5 seconds...');
+    await new Promise(resolve => setTimeout(resolve, 5000));
+    
+    // Truncate data by setting root to empty object
+    const rootRef = ref(database, '/');
+    await set(rootRef, {});
+    
+    console.log('Truncate complete! All data has been removed from Firebase.');
+    
+  } catch (error) {
+    console.error('Truncate failed:', error.message);
+    process.exit(1);
+  }
+}
+
+/**
  * Main function to handle CLI arguments
  */
 function main() {
@@ -126,12 +157,14 @@ function main() {
 Firebase Database Export/Import Utility
 
 Usage:
-  Export: node firebase-export-import.js --export
-  Import: node firebase-export-import.js --import <filename>
+  Export:    node firebase-export-import.js --export
+  Import:    node firebase-export-import.js --import <filename>
+  Truncate:  node firebase-export-import.js --truncate
 
 Options:
   --export              Export all data from Firebase database
   --import <filename>   Import data from specified JSON file
+  --truncate            Remove all data from Firebase database
   --help, -h            Show this help message
 `);
     process.exit(0);
@@ -141,6 +174,8 @@ Options:
     exportData();
   } else if (args[0] === '--import') {
     importData(args[1]);
+  } else if (args[0] === '--truncate') {
+    truncateData();
   } else {
     console.error('Error: Unknown command. Use --help for usage information.');
     process.exit(1);
