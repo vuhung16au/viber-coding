@@ -4,7 +4,7 @@
 // Import Firebase modules
 const { initializeApp } = require('firebase/app');
 const { getDatabase, ref, set } = require('firebase/database');
-require('dotenv').config({ path: '../quiz-app-temp/.env.local' });
+require('dotenv').config({ path: '../.env.local' });
 
 // Firebase configuration from environment variables
 const firebaseConfig = {
@@ -25,9 +25,12 @@ const database = getDatabase(app);
 const pathsToTruncate = [
   'answers',
   'questions',
+  'quizResults',
   'quizzes',
   'results',
-  'statistics'
+  'statistics',
+  'usernames',
+  'users'
 ];
 
 /**
