@@ -6,15 +6,26 @@ import { useRouter } from 'next/navigation';
 export default function QuizCard({ quiz, showActions = false, onEdit, onDelete, onStart }) {
   // Handle possible missing fields gracefully
   const questionCount = Array.isArray(quiz.questions) ? quiz.questions.length : 0;
-  const coverImage = quiz.coverImage || quiz.image || '/images/default-quiz.jpg';
+  // Always use default-quiz.jpg as the main image or fallback for missing images
+  const coverImage = '/images/default-quiz.jpg';
   const router = useRouter();
   const params = useParams();
   const lang = params?.lang || 'en';
   
-  // Process tags to handle both array and object formats from Firebase
-  const tags = quiz.tags ? 
-    (Array.isArray(quiz.tags) ? quiz.tags : Object.values(quiz.tags)) : 
-    [];
+  // Safely process tags from any format (string, array, object, or undefined)
+  let displayTags = [];
+  if (quiz.tags) {
+    if (typeof quiz.tags === 'string') {
+      // If tags is a string (comma separated)
+      displayTags = quiz.tags.split(',').map(tag => tag.trim()).filter(Boolean);
+    } else if (Array.isArray(quiz.tags)) {
+      // If tags is already an array
+      displayTags = quiz.tags;
+    } else if (typeof quiz.tags === 'object') {
+      // If tags is an object from Firebase
+      displayTags = Object.values(quiz.tags);
+    }
+  }
   
   // Always define the handler using hooks, regardless of whether onStart is provided
   const handleStartQuiz = () => {
@@ -35,6 +46,10 @@ export default function QuizCard({ quiz, showActions = false, onEdit, onDelete, 
           priority
           className="object-cover"
           sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, 33vw"
+          onError={(e) => {
+            e.target.onerror = null;
+            e.target.src = '/images/default-quiz.jpg';
+          }}
         />
       </div>
       <div className="p-6">
@@ -42,9 +57,9 @@ export default function QuizCard({ quiz, showActions = false, onEdit, onDelete, 
         <p className="text-gray-600 dark:text-gray-300 mb-4">{quiz.description}</p>
         
         {/* Quiz tags */}
-        {quiz.tags && quiz.tags.trim !== undefined && quiz.tags.trim() !== '' && (
+        {displayTags.length > 0 && (
           <div className="flex flex-wrap gap-1 mt-2">
-            {quiz.tags.split(', ').map((tag, index) => (
+            {displayTags.map((tag, index) => (
               <span
                 key={index}
                 className="text-xs px-2 py-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded"

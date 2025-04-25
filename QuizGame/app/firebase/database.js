@@ -9,7 +9,8 @@ import {
   equalTo,
   limitToLast,
   serverTimestamp,
-  update
+  update,
+  remove
 } from 'firebase/database';
 import { db as database } from './config';
 
@@ -217,5 +218,220 @@ export const getLeaderboard = async (limit = 10) => {
   } catch (error) {
     console.error('Error fetching leaderboard:', error);
     return [];
+  }
+};
+
+// Categories management functions
+
+/**
+ * Get all categories from the database
+ * @param {boolean} includeInactive - Whether to include inactive categories
+ * @returns {Promise<Array>} Categories array
+ */
+export const getAllCategories = async (includeInactive = false) => {
+  try {
+    const categoriesRef = ref(database, 'categories');
+    const snapshot = await get(categoriesRef);
+    
+    if (snapshot.exists()) {
+      const categoriesData = snapshot.val();
+      const categoriesArray = Object.keys(categoriesData).map(key => ({
+        id: key,
+        ...categoriesData[key]
+      }));
+      
+      // Filter out inactive categories if includeInactive is false
+      return includeInactive 
+        ? categoriesArray 
+        : categoriesArray.filter(cat => cat.isActive);
+    }
+    
+    return [];
+  } catch (error) {
+    console.error('Error getting all categories:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get a single category by ID
+ * @param {string} categoryId - Category ID
+ * @returns {Promise<Object|null>} Category object or null if not found
+ */
+export const getCategoryById = async (categoryId) => {
+  try {
+    const categoryRef = ref(database, `categories/${categoryId}`);
+    const snapshot = await get(categoryRef);
+    
+    if (snapshot.exists()) {
+      return {
+        id: categoryId,
+        ...snapshot.val()
+      };
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('Error getting category by ID:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get a single category by slug
+ * @param {string} slug - Category slug
+ * @returns {Promise<Object|null>} Category object or null if not found
+ */
+export const getCategoryBySlug = async (slug) => {
+  try {
+    const categoriesRef = ref(database, 'categories');
+    const snapshot = await get(categoriesRef);
+    
+    if (snapshot.exists()) {
+      const categoriesData = snapshot.val();
+      
+      for (const key in categoriesData) {
+        if (categoriesData[key].slug === slug) {
+          return {
+            id: key,
+            ...categoriesData[key]
+          };
+        }
+      }
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('Error getting category by slug:', error);
+    throw error;
+  }
+};
+
+/**
+ * Create a new category
+ * @param {Object} categoryData - Category data
+ * @returns {Promise<string>} New category ID
+ */
+export const createCategory = async (categoryData) => {
+  try {
+    const categoriesRef = ref(database, 'categories');
+    const newCategoryRef = push(categoriesRef);
+    
+    await set(newCategoryRef, {
+      name: categoryData.name,
+      slug: categoryData.slug,
+      description: categoryData.description || '',
+      isActive: categoryData.isActive !== false, // Default to true if not provided
+      displayOrder: categoryData.displayOrder || 0,
+      createdAt: serverTimestamp()
+    });
+    
+    return newCategoryRef.key;
+  } catch (error) {
+    console.error('Error creating category:', error);
+    throw error;
+  }
+};
+
+/**
+ * Update an existing category
+ * @param {string} categoryId - Category ID
+ * @param {Object} categoryData - Updated category data
+ * @returns {Promise<void>}
+ */
+export const updateCategory = async (categoryId, categoryData) => {
+  try {
+    const categoryRef = ref(database, `categories/${categoryId}`);
+    const updatedData = { ...categoryData };
+    
+    // Remove id from the data to avoid saving it twice
+    delete updatedData.id;
+    
+    // Add updatedAt timestamp
+    updatedData.updatedAt = serverTimestamp();
+    
+    await update(categoryRef, updatedData);
+  } catch (error) {
+    console.error('Error updating category:', error);
+    throw error;
+  }
+};
+
+/**
+ * Delete a category
+ * @param {string} categoryId - Category ID
+ * @returns {Promise<void>}
+ */
+export const deleteCategory = async (categoryId) => {
+  try {
+    const categoryRef = ref(database, `categories/${categoryId}`);
+    await remove(categoryRef);
+  } catch (error) {
+    console.error('Error deleting category:', error);
+    throw error;
+  }
+};
+
+/**
+ * Toggle a category's active status
+ * @param {string} categoryId - Category ID
+ * @param {boolean} isActive - New active status
+ * @returns {Promise<void>}
+ */
+export const toggleCategoryStatus = async (categoryId, isActive) => {
+  try {
+    const categoryRef = ref(database, `categories/${categoryId}`);
+    await update(categoryRef, {
+      isActive,
+      updatedAt: serverTimestamp()
+    });
+  } catch (error) {
+    console.error('Error toggling category status:', error);
+    throw error;
+  }
+};
+
+/**
+ * Delete a quiz by ID
+ * @param {string} quizId - Quiz ID
+ * @returns {Promise<boolean>} Success status
+ */
+export const deleteQuiz = async (quizId) => {
+  if (!quizId) return false;
+  
+  try {
+    const quizRef = ref(database, `quizzes/${quizId}`);
+    await remove(quizRef);
+    return true;
+  } catch (error) {
+    console.error('Error deleting quiz:', error);
+    return false;
+  }
+};
+
+/**
+ * Update an existing quiz
+ * @param {string} quizId - Quiz ID
+ * @param {Object} quizData - Updated quiz data
+ * @returns {Promise<boolean>} Success status
+ */
+export const updateQuiz = async (quizId, quizData) => {
+  if (!quizId) return false;
+  
+  try {
+    const quizRef = ref(database, `quizzes/${quizId}`);
+    const updatedData = { ...quizData };
+    
+    // Remove id from the data to avoid saving it twice
+    delete updatedData.id;
+    
+    // Add updatedAt timestamp
+    updatedData.updatedAt = serverTimestamp();
+    
+    await update(quizRef, updatedData);
+    return true;
+  } catch (error) {
+    console.error('Error updating quiz:', error);
+    return false;
   }
 };

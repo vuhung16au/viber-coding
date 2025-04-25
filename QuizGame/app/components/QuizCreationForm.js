@@ -1,12 +1,14 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { useAuth } from '../firebase/auth';
 import { db } from '../firebase/config';
-import { ref, push, set, serverTimestamp } from 'firebase/database';
+import { ref, push, set, serverTimestamp, get } from 'firebase/database';
 import { recordQuizCreated } from '../firebase/statistics';
+import { getAllCategories } from '../firebase/database';
+import { generateQuizWithAI } from '../services/geminiService';
 
 export default function QuizCreationForm() {
   const router = useRouter();
@@ -16,9 +18,16 @@ export default function QuizCreationForm() {
     description: '',
     coverImage: '/images/default-quiz.jpg', // Default placeholder image
     category: '',
-    tags: '', // Change from array to string
-    questions: []
+    categoryId: '', 
+    tags: '', 
+    questions: [],
+    isFeatured: false 
   });
+  
+  // Add new state variables for AI generation
+  const [useAI, setUseAI] = useState(false);
+  const [isGeneratingWithAI, setIsGeneratingWithAI] = useState(false);
+  const [aiGenerationError, setAiGenerationError] = useState('');
 
   const [currentTag, setCurrentTag] = useState('');
   const [currentQuestion, setCurrentQuestion] = useState({
@@ -30,6 +39,28 @@ export default function QuizCreationForm() {
   const [errorMessage, setErrorMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedFile, setSelectedFile] = useState(null);
+  const [categories, setCategories] = useState([]); 
+  const [loadingCategories, setLoadingCategories] = useState(true);
+
+  // Fetch categories from the database
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        setLoadingCategories(true);
+        // Use the getAllCategories function from the database.js
+        const categoriesData = await getAllCategories();
+        // Sort categories by display order
+        const sortedCategories = categoriesData.sort((a, b) => a.displayOrder - b.displayOrder);
+        setCategories(sortedCategories);
+      } catch (error) {
+        console.error('Error fetching categories:', error);
+      } finally {
+        setLoadingCategories(false);
+      }
+    };
+
+    fetchCategories();
+  }, []);
 
   // Handle form field changes for quiz details
   const handleQuizChange = (e) => {
@@ -203,10 +234,21 @@ export default function QuizCreationForm() {
       questionIds.push(questionId);
     }
     
-    // Ensure category has a default value if not provided
+    // Ensure category has a default value if not provided and map to proper display format
+    const categoryMappings = {
+      'general': 'General Knowledge',
+      'science': 'Science & Technology',
+      'technology': 'Science & Technology',
+      'history': 'History',
+      'geography': 'Geography',
+      'entertainment': 'Pop Culture',
+      'sports': 'Sports',
+      'other': 'Other'
+    };
+    
     const category = quizData.category && quizData.category.trim() !== '' 
-      ? quizData.category 
-      : 'general';
+      ? (categoryMappings[quizData.category] || quizData.category)
+      : 'General Knowledge';
       
     // No need to convert tags to array anymore, use the string directly
     
@@ -219,11 +261,13 @@ export default function QuizCreationForm() {
       title: quizData.title,
       description: quizData.description,
       coverImage: quizData.coverImage,
-      category: category,
+      category: category, // For backward compatibility
+      categoryId: quizData.categoryId || null, // Store the category ID
       tags: quizData.tags || '', // Save as string directly
       questions: questionIds,
       userId: userId,
-      createdAt: serverTimestamp()
+      createdAt: serverTimestamp(),
+      isFeatured: quizData.isFeatured || false // Add isFeatured property
     });
     
     // Record quiz creation in statistics
@@ -232,6 +276,56 @@ export default function QuizCreationForm() {
     }
     
     return quizId;
+  };
+
+  // Handle AI quiz generation
+  const handleGenerateWithAI = async () => {
+    try {
+      if (quizData.description.trim() === '') {
+        setAiGenerationError('Please enter a quiz description before generating with AI');
+        return;
+      }
+
+      setIsGeneratingWithAI(true);
+      setAiGenerationError('');
+
+      // Generate questions using the Gemini API
+      const generatedQuestions = await generateQuizWithAI(quizData.description, 10);
+      
+      // Map the generated questions to our quiz format
+      const formattedQuestions = generatedQuestions.map((q, index) => ({
+        id: quizData.questions.length + index + 1,
+        question: q.question,
+        options: q.options,
+        correctAnswer: q.correctAnswer
+      }));
+
+      // Update quiz data with generated title if not already provided
+      let updatedQuizData = { ...quizData };
+      if (!quizData.title.trim()) {
+        // Create a title based on the description
+        const titleWords = quizData.description.split(' ');
+        const title = titleWords.length <= 3
+          ? `${quizData.description} Quiz`
+          : `${titleWords.slice(0, 3).join(' ')}... Quiz`;
+        
+        updatedQuizData.title = title;
+      }
+      
+      // Add the generated questions to the quiz
+      updatedQuizData.questions = [
+        ...quizData.questions,
+        ...formattedQuestions
+      ];
+      
+      setQuizData(updatedQuizData);
+      setAiGenerationError(''); // Clear any errors
+    } catch (error) {
+      console.error('Error generating quiz with AI:', error);
+      setAiGenerationError(`Failed to generate quiz: ${error.message || 'An unexpected error occurred'}`);
+    } finally {
+      setIsGeneratingWithAI(false);
+    }
   };
 
   // Upload quiz image to a public URL (this is a placeholder)
@@ -302,6 +396,12 @@ export default function QuizCreationForm() {
         </div>
       )}
       
+      {aiGenerationError && (
+        <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-lg">
+          {aiGenerationError}
+        </div>
+      )}
+      
       <form onSubmit={handleSubmit}>
         {/* Quiz Basic Details Section */}
         <div className="mb-8">
@@ -337,26 +437,81 @@ export default function QuizCreationForm() {
             />
           </div>
           
+          {/* AI Generation Section */}
+          <div className="mb-6 p-4 border border-blue-200 rounded-md bg-blue-50 dark:bg-blue-900/20 dark:border-blue-800">
+            <div className="mb-2">
+              <label className="flex items-center text-sm font-medium text-gray-700 dark:text-gray-300">
+                <input
+                  type="checkbox"
+                  checked={useAI}
+                  onChange={() => setUseAI(!useAI)}
+                  className="w-4 h-4 mr-2 text-blue-600 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 dark:bg-gray-700 dark:border-gray-600"
+                />
+                Use AI to create quizzes
+              </label>
+              <p className="text-xs text-gray-500 mt-1 ml-6 dark:text-gray-400">
+                Let AI generate quiz questions based on your description. Enter a description above first.
+              </p>
+            </div>
+            
+            {useAI && (
+              <button
+                type="button"
+                onClick={handleGenerateWithAI}
+                disabled={isGeneratingWithAI || quizData.description.trim() === ''}
+                className={`w-full py-2 mt-2 ${
+                  isGeneratingWithAI || quizData.description.trim() === ''
+                    ? 'bg-blue-300 cursor-not-allowed'
+                    : 'bg-blue-600 hover:bg-blue-700'
+                } text-white font-medium rounded-md transition-colors flex items-center justify-center`}
+              >
+                {isGeneratingWithAI ? (
+                  <>
+                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Generating Quiz...
+                  </>
+                ) : (
+                  'Create Quiz with AI'
+                )}
+              </button>
+            )}
+          </div>
+          
           <div className="mb-4">
             <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">
               Category
             </label>
             <select
-              name="category"
-              value={quizData.category}
-              onChange={handleQuizChange}
+              name="categoryId"
+              value={quizData.categoryId} 
+              onChange={(e) => {
+                const selectedId = e.target.value;
+                const selectedCategory = categories.find(cat => cat.id === selectedId);
+                setQuizData({
+                  ...quizData,
+                  category: selectedCategory ? selectedCategory.name : '',
+                  categoryId: selectedId
+                });
+              }}
               className="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+              disabled={loadingCategories}
             >
               <option value="">Select a category</option>
-              <option value="general">General Knowledge</option>
-              <option value="science">Science</option>
-              <option value="history">History</option>
-              <option value="geography">Geography</option>
-              <option value="entertainment">Entertainment</option>
-              <option value="sports">Sports</option>
-              <option value="technology">Technology</option>
-              <option value="other">Other</option>
+              {categories.map(category => (
+                <option key={category.id} value={category.id} disabled={!category.isActive}>
+                  {category.name} {!category.isActive && '(Inactive)'}
+                </option>
+              ))}
             </select>
+            {loadingCategories && (
+              <div className="text-sm text-gray-500 mt-1 flex items-center">
+                <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-blue-500 mr-2"></div>
+                Loading categories...
+              </div>
+            )}
           </div>
           
           <div className="mb-4">
@@ -419,6 +574,23 @@ export default function QuizCreationForm() {
                 Add
               </button>
             </div>
+          </div>
+
+          <div className="mb-4">
+            <label className="flex items-center text-sm font-medium text-gray-700 dark:text-gray-300">
+              <input
+                type="checkbox"
+                name="isFeatured"
+                checked={quizData.isFeatured}
+                onChange={(e) => setQuizData({
+                  ...quizData,
+                  isFeatured: e.target.checked
+                })}
+                className="w-4 h-4 mr-2 text-blue-600 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 dark:bg-gray-700 dark:border-gray-600"
+              />
+              Featured Quiz (Administrators only)
+            </label>
+            <p className="text-xs text-gray-500 mt-1 ml-6">Featured quizzes are displayed prominently on the dashboard.</p>
           </div>
         </div>
 

@@ -1,6 +1,7 @@
 import { Inter } from 'next/font/google';
 import './globals.css';
 import Script from 'next/script';
+import { redirect } from 'next/navigation';
 
 // Configure the Inter font with display settings to avoid preload warning
 const inter = Inter({
@@ -12,12 +13,18 @@ const inter = Inter({
 export const metadata = {
   title: 'Quiz Get It Right',
   description: 'Test your knowledge with our quizzes',
+  icons: {
+    icon: '/favicon.ico',
+  },
 };
 
 // This root layout will be used by the middleware to redirect to language-specific routes
 export default function RootLayout({ children }) {
   return (
     <html lang="en" suppressHydrationWarning className={inter.variable}>
+      <head>
+        <link rel="icon" href="/favicon.ico" />
+      </head>
       <body className={inter.className}>{children}</body>
       
       {/* Fix font preloading issues by setting appropriate 'as' attribute */}

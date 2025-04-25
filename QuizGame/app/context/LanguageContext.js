@@ -2,22 +2,7 @@
 
 import { createContext, useContext, useState, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import en from '../translations/en';
-import vi from '../translations/vi';
-import fr from '../translations/fr';
-import de from '../translations/de';
-import zh from '../translations/zh';
-import ja from '../translations/ja';
-
-// Map of language codes to their translation data
-const translations = {
-  en,
-  vi,
-  fr,
-  de,
-  zh,
-  ja
-};
+import translations from '../translations';
 
 // Map of language codes to their display names
 export const languageOptions = [

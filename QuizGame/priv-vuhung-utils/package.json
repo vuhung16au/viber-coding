@@ -2,14 +2,20 @@
   "name": "priv-vuhung-utils",
   "version": "1.0.0",
   "main": "truncate-data.js",
+  "type": "module",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "populate-quiz": "node populate-sample-quiz.js",
+    "export": "node firebase-export-import.js --export",
+    "import": "node firebase-export-import.js --import",
+    "truncate": "node truncate-data.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "@google/generative-ai": "^0.2.1",
     "dotenv": "^16.5.0",
     "firebase": "^11.6.0"
   }

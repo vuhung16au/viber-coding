@@ -202,6 +202,59 @@ export default function QuizPage({ params }) {
     fetchQuiz();
   }, [unwrappedParams.id]);
 
+  // Handle keyboard shortcuts
+  useEffect(() => {
+    // Only add keyboard listeners when quiz is loaded and not showing results
+    if (quiz && !showResults && !loading) {
+      const handleKeyDown = (e) => {
+        // Prevent default browser behavior for these keys
+        if (['a', 'b', 'c', 'd', 'n', 'p'].includes(e.key.toLowerCase())) {
+          e.preventDefault();
+        }
+
+        const currentQuestion = quiz.questions[currentQuestionIndex];
+        
+        // Handle A, B, C, D keys to select answers
+        if (e.key.toLowerCase() === 'a' && currentQuestion.answers[0]) {
+          handleAnswer(currentQuestion.answers[0].id);
+        } else if (e.key.toLowerCase() === 'b' && currentQuestion.answers[1]) {
+          handleAnswer(currentQuestion.answers[1].id);
+        } else if (e.key.toLowerCase() === 'c' && currentQuestion.answers[2]) {
+          handleAnswer(currentQuestion.answers[2].id);
+        } else if (e.key.toLowerCase() === 'd' && currentQuestion.answers[3]) {
+          handleAnswer(currentQuestion.answers[3].id);
+        }
+        
+        // Handle N key for next question or submit
+        else if (e.key.toLowerCase() === 'n') {
+          const currentAnswer = userAnswers[currentQuestionIndex];
+          if (currentAnswer) { // Only proceed if an answer is selected
+            if (currentQuestionIndex < quiz.questions.length - 1) {
+              nextQuestion();
+            } else {
+              submitQuiz();
+            }
+          }
+        }
+        
+        // Handle P key for previous question
+        else if (e.key.toLowerCase() === 'p') {
+          if (currentQuestionIndex > 0) {
+            prevQuestion();
+          }
+        }
+      };
+      
+      // Add keyboard event listener
+      window.addEventListener('keydown', handleKeyDown);
+      
+      // Cleanup
+      return () => {
+        window.removeEventListener('keydown', handleKeyDown);
+      };
+    }
+  }, [quiz, currentQuestionIndex, userAnswers, showResults, loading]);
+
   // Handle user answer
   const handleAnswer = (answerId) => {
     const updatedAnswers = [...userAnswers];
@@ -287,6 +340,9 @@ export default function QuizPage({ params }) {
           userAnswers={userAnswers}
           onRetry={retryQuiz}
         />
+        <div className="mt-4 text-center text-sm text-gray-600 dark:text-gray-400">
+          <p>Press <span className="font-medium">R</span> to retry the quiz</p>
+        </div>
       </div>
     );
   }
@@ -302,6 +358,19 @@ export default function QuizPage({ params }) {
         <h1 className="text-3xl font-bold mb-2 text-gray-900 dark:text-white">{quiz.title}</h1>
         <p className="text-gray-600 dark:text-gray-400">Question {currentQuestionIndex + 1} of {quiz.questions.length}</p>
       </header>
+
+      {/* Keyboard shortcuts guide */}
+      <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-lg text-sm">
+        <h3 className="font-semibold text-blue-700 dark:text-blue-400 mb-1">Keyboard Shortcuts</h3>
+        <ul className="grid grid-cols-1 md:grid-cols-2 gap-1 text-blue-700 dark:text-blue-300">
+          <li><span className="inline-block w-6 h-6 mr-2 text-center leading-6 bg-blue-100 dark:bg-blue-800 rounded">A</span> Select option A</li>
+          <li><span className="inline-block w-6 h-6 mr-2 text-center leading-6 bg-blue-100 dark:bg-blue-800 rounded">B</span> Select option B</li>
+          <li><span className="inline-block w-6 h-6 mr-2 text-center leading-6 bg-blue-100 dark:bg-blue-800 rounded">C</span> Select option C</li>
+          <li><span className="inline-block w-6 h-6 mr-2 text-center leading-6 bg-blue-100 dark:bg-blue-800 rounded">D</span> Select option D</li>
+          <li><span className="inline-block w-6 h-6 mr-2 text-center leading-6 bg-blue-100 dark:bg-blue-800 rounded">N</span> Next question (after selecting)</li>
+          <li><span className="inline-block w-6 h-6 mr-2 text-center leading-6 bg-blue-100 dark:bg-blue-800 rounded">P</span> Previous question</li>
+        </ul>
+      </div>
 
       <div className="flex-grow mb-8">
         <Question 
@@ -321,7 +390,9 @@ export default function QuizPage({ params }) {
               : 'bg-gray-200 text-gray-800 dark:bg-gray-700 dark:text-white hover:bg-gray-300 dark:hover:bg-gray-600'
           }`}
         >
-          Previous
+          <span className="hidden sm:inline">Previous</span>
+          <span className="sm:hidden">Prev</span>
+          <span className="ml-1 text-xs">(&nbsp;P&nbsp;)</span>
         </button>
 
         {isLastQuestion ? (
@@ -335,6 +406,7 @@ export default function QuizPage({ params }) {
             }`}
           >
             Submit Quiz
+            {currentAnswer && <span className="ml-1 text-xs">(&nbsp;N&nbsp;)</span>}
           </button>
         ) : (
           <button
@@ -347,6 +419,7 @@ export default function QuizPage({ params }) {
             }`}
           >
             Next
+            {currentAnswer && <span className="ml-1 text-xs">(&nbsp;N&nbsp;)</span>}
           </button>
         )}
       </div>

@@ -553,3 +553,130 @@ https://quiz-gotitright.vercel.app/en/quiz/-OOc3iGn0td8Nb3i0k2K/1152-11
 Pls make sure the choices (A, B, C, D) are fetched correctly from the correct places in Firebase realtime db.
 
 Fix the bug 
+
+# Change dashboard 
+
+http://localhost:3000/en
+
+Implement the section "dashboard.exploreCategoryQuizzes" 
+- Show "Featured quizzes"
+
+Pls help me decide what is a "featured quiz" and change the database structure if neccessary, and save "featured quiz" property in the database. 
+
+Update missing keys in translation for all language, 
+
+Update CHANGELOG.md 
+
+# Change dashboard 2 
+
+Implement section "Explore Quizzes by Category" in dashboard
+
+This section will show
+
+most played quizzes
+featured quizzes
+(max 5 quizzes in each catetory to show)
+
+Pls generate missing keys for all langs
+Update changelog.md
+Update database structure if needed
+Update code to implement the above feature
+
+# Gen quiz with AI 
+
+http://localhost:3000/en/create-quiz
+
+Help me implementing single-click quiz generation using Gemini AI 
+
+The UI/UX flow is: 
+- User checks the box "Use AI to create quizzes"
+- User click the button "Creaate quizzes with AI"
+- The app will create 20 quizzes based on the description of the quiz.
+
+Example:
+If the description of the quiz is "Why is the sky blue?",
+
+### Sky & Blue Quiz
+
+#### Question 1: Why is the sky blue?
+- Because blue light is scattered in all directions by the atmosphere (✔️)
+- Because the ocean reflects its color
+- Because space is blue
+- Because clouds are blue
+
+#### Question 2: What time of day does the sky often appear red or orange instead of blue?
+- During sunrise or sunset (✔️)
+- At midnight
+- At noon
+- During a thunderstorm
+
+#### Question 3: What gas in the atmosphere is most responsible for scattering sunlight and making the sky appear blue?
+- Nitrogen (✔️)
+- Oxygen
+- Carbon Dioxide
+- Helium
+
+#### Question 4: Which planet has a blue-colored atmosphere due to methane gas?
+- Neptune (✔️)
+- Mars
+- Venus
+- Mercury
+
+#### Question 5: What causes the sky to turn gray or white?
+- Clouds blocking sunlight (✔️)
+- Blue light intensifying
+- Moonlight reflecting off water
+- Pollution only
+
+#### Question 6: What is a "blue moon"?
+- The second full moon in a single calendar month (✔️)
+- A moon that is actually blue
+- A new moon that appears at noon
+- A moon during a solar eclipse
+
+#### Question 7: What does "feeling blue" usually mean?
+- Feeling sad or depressed (✔️)
+- Being cold
+- Being in love
+- Being surprised
+
+#### Question 8: What is the phenomenon called when light bends as it enters Earth’s atmosphere and makes the sky appear blue?
+- Rayleigh scattering (✔️)
+- Photosynthesis
+- Aurora Borealis
+- Refraction bounce
+
+#### Question 9: What part of the electromagnetic spectrum is blue light in?
+- Visible light (✔️)
+- Infrared
+- Ultraviolet
+- Gamma rays
+
+#### Question 10: Which bird is famously known for its bright blue feathers?
+- Blue Jay (✔️)
+- Cardinal
+- Peacock (male only has blue neck)
+- Bald Eagle
+
+# Gen sample quiz 
+
+Help me create 10 quizzes for each of the following category 
+
+General Knowledge
+HSC
+Science & Technology
+History
+Maths
+Writing
+Geography
+Pop Culture
+Sports
+Arts & Literature
+Food & Drink
+
+Each quiz has 10 questions.
+each question has 4 answers, and one of them is correct. 
+
+Insert the quizzes into DB. 
+
+Use gemini ai to generate the quiz.

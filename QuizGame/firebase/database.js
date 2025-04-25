@@ -149,6 +149,108 @@ export const deleteAnswer = async (answerId) => {
   return answerId;
 };
 
+// --------- CATEGORY OPERATIONS ---------
+
+// Create a new category
+export const createCategory = async (categoryData) => {
+  const categoriesRef = ref(database, 'categories');
+  const newCategoryRef = push(categoriesRef);
+  const categoryId = newCategoryRef.key;
+  
+  await set(newCategoryRef, {
+    name: categoryData.name,
+    slug: categoryData.slug,
+    description: categoryData.description || "",
+    isActive: categoryData.isActive !== false, // Default to true if not specified
+    displayOrder: categoryData.displayOrder || 0,
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp()
+  });
+  
+  return categoryId;
+};
+
+// Get all categories
+export const getAllCategories = async (includeInactive = false) => {
+  const categoriesRef = ref(database, 'categories');
+  const snapshot = await get(categoriesRef);
+  
+  if (snapshot.exists()) {
+    const categoriesData = snapshot.val();
+    const categoriesArray = Object.keys(categoriesData).map(key => ({
+      id: key,
+      ...categoriesData[key]
+    }));
+    
+    // Filter out inactive categories if needed
+    return includeInactive 
+      ? categoriesArray 
+      : categoriesArray.filter(category => category.isActive !== false);
+  }
+  return [];
+};
+
+// Get a specific category by ID
+export const getCategoryById = async (categoryId) => {
+  const categoryRef = ref(database, `categories/${categoryId}`);
+  const snapshot = await get(categoryRef);
+  
+  if (snapshot.exists()) {
+    return {
+      id: categoryId,
+      ...snapshot.val()
+    };
+  }
+  return null;
+};
+
+// Update a category
+export const updateCategory = async (categoryId, categoryData) => {
+  const categoryRef = ref(database, `categories/${categoryId}`);
+  
+  // Add updated timestamp
+  const updatedData = {
+    ...categoryData,
+    updatedAt: serverTimestamp()
+  };
+  
+  await update(categoryRef, updatedData);
+  return categoryId;
+};
+
+// Delete a category
+export const deleteCategory = async (categoryId) => {
+  // Check if the category is used by any quizzes
+  const quizzesRef = ref(database, 'quizzes');
+  const snapshot = await get(quizzesRef);
+  
+  if (snapshot.exists()) {
+    const quizzesData = snapshot.val();
+    const isUsed = Object.values(quizzesData).some(quiz => 
+      quiz.categoryId === categoryId
+    );
+    
+    if (isUsed) {
+      throw new Error('Cannot delete category that is used by quizzes. Deactivate it instead.');
+    }
+  }
+  
+  // If not used, proceed with deletion
+  const categoryRef = ref(database, `categories/${categoryId}`);
+  await remove(categoryRef);
+  return categoryId;
+};
+
+// Toggle category active status
+export const toggleCategoryStatus = async (categoryId, isActive) => {
+  const categoryRef = ref(database, `categories/${categoryId}`);
+  await update(categoryRef, { 
+    isActive: isActive,
+    updatedAt: serverTimestamp()
+  });
+  return categoryId;
+};
+
 // --------- RESULT OPERATIONS ---------
 
 // Create a new result
