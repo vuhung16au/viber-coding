@@ -1,8 +1,12 @@
 import { Inter } from 'next/font/google';
 import './globals.css';
 import Script from 'next/script';
-import { redirect } from 'next/navigation';
-import GoogleAnalytics from './components/GoogleAnalytics';
+import dynamic from 'next/dynamic';
+
+// Dynamically import the GoogleAnalytics component with no SSR
+const GoogleAnalytics = dynamic(() => import('./components/GoogleAnalytics'), {
+  ssr: false,
+});
 
 // Configure the Inter font with display settings to avoid preload warning
 const inter = Inter({
@@ -25,9 +29,12 @@ export default function RootLayout({ children }) {
     <html lang="en" suppressHydrationWarning className={inter.variable}>
       <head>
         <link rel="icon" href="/favicon.ico" />
-        <GoogleAnalytics />
+        {/* The GoogleAnalytics component will only be loaded on the client side */}
       </head>
-      <body className={inter.className}>{children}</body>
+      <body className={inter.className}>
+        {children}
+        <GoogleAnalytics />
+      </body>
       
       {/* Fix font preloading issues by setting appropriate 'as' attribute */}
       <Script id="fix-font-preload" strategy="afterInteractive">

@@ -27,19 +27,22 @@ let db;
 let storage;
 let analytics = null;
 
-// Only initialize Firebase if it hasn't been initialized
-if (!getApps().length) {
-  firebaseApp = initializeApp(firebaseConfig);
-  // Initialize services
-  auth = getAuth(firebaseApp);
-  db = getDatabase(firebaseApp);
-  storage = getStorage(firebaseApp);
-} else {
-  // If already initialized, use existing app
-  firebaseApp = getApps()[0];
-  auth = getAuth(firebaseApp);
-  db = getDatabase(firebaseApp);
-  storage = getStorage(firebaseApp);
+// Only initialize if in client environment
+if (typeof window !== 'undefined') {
+  // Only initialize Firebase if it hasn't been initialized
+  if (!getApps().length) {
+    firebaseApp = initializeApp(firebaseConfig);
+    // Initialize services
+    auth = getAuth(firebaseApp);
+    db = getDatabase(firebaseApp);
+    storage = getStorage(firebaseApp);
+  } else {
+    // If already initialized, use existing app
+    firebaseApp = getApps()[0];
+    auth = getAuth(firebaseApp);
+    db = getDatabase(firebaseApp);
+    storage = getStorage(firebaseApp);
+  }
 }
 
 // Initialize Analytics (only on client-side)
@@ -47,7 +50,7 @@ const initializeAnalytics = async () => {
   if (typeof window !== 'undefined') {
     try {
       const isAnalyticsSupported = await isSupported();
-      if (isAnalyticsSupported) {
+      if (isAnalyticsSupported && firebaseApp) {
         analytics = getAnalytics(firebaseApp);
         console.log('Firebase Analytics initialized successfully');
       }
@@ -55,9 +58,10 @@ const initializeAnalytics = async () => {
       console.error('Firebase Analytics initialization error:', error);
     }
   }
+  return analytics;
 };
 
-// Call the initialize function
-initializeAnalytics();
+// Don't auto-call the initialization on import
+// This will be called explicitly from client components
 
 export { auth, db, storage, analytics, initializeAnalytics };
