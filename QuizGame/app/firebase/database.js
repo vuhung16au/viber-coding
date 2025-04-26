@@ -10,7 +10,8 @@ import {
   limitToLast,
   serverTimestamp,
   update,
-  remove
+  remove,
+  orderByKey
 } from 'firebase/database';
 import { db as database } from './config';
 
@@ -81,6 +82,71 @@ export const getAllQuizzes = async (limit = 50) => {
     return [];
   } catch (error) {
     console.error('Error fetching quizzes:', error);
+    return [];
+  }
+};
+
+// Alias for getAllQuizzes to fix missing function error in QuizzesContent.js
+export const getQuizzes = async (limit = 50) => {
+  return getAllQuizzes(limit);
+};
+
+// Get most popular quizzes based on play count
+export const getMostPopularQuizzes = async (limit = 5) => {
+  try {
+    const quizzesRef = ref(database, 'quizzes');
+    const snapshot = await get(quizzesRef);
+    
+    if (snapshot.exists()) {
+      const quizzes = [];
+      snapshot.forEach((childSnapshot) => {
+        quizzes.push({
+          id: childSnapshot.key,
+          ...childSnapshot.val()
+        });
+      });
+      
+      // Sort by play count or any popularity metric
+      quizzes.sort((a, b) => (b.playCount || 0) - (a.playCount || 0));
+      
+      // Return limited results
+      return quizzes.slice(0, limit);
+    }
+    return [];
+  } catch (error) {
+    console.error('Error fetching popular quizzes:', error);
+    return [];
+  }
+};
+
+// Get most recently added quizzes
+export const getRecentQuizzes = async (limit = 5) => {
+  try {
+    const quizzesRef = ref(database, 'quizzes');
+    const recentQuizzesQuery = query(quizzesRef, orderByKey(), limitToLast(limit));
+    const snapshot = await get(recentQuizzesQuery);
+    
+    if (snapshot.exists()) {
+      const quizzes = [];
+      snapshot.forEach((childSnapshot) => {
+        quizzes.push({
+          id: childSnapshot.key,
+          ...childSnapshot.val()
+        });
+      });
+      
+      // Sort by creation date if available
+      quizzes.sort((a, b) => {
+        const dateA = a.createdAt ? new Date(a.createdAt) : new Date(0);
+        const dateB = b.createdAt ? new Date(b.createdAt) : new Date(0);
+        return dateB - dateA;
+      });
+      
+      return quizzes;
+    }
+    return [];
+  } catch (error) {
+    console.error('Error fetching recent quizzes:', error);
     return [];
   }
 };
