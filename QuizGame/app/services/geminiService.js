@@ -1,8 +1,16 @@
 // Gemini AI service for quiz generation
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
+// Get the API key from environment variables
+const API_KEY = process.env.GEMINI_API_KEY;
+
+// Validate the API key exists
+if (!API_KEY) {
+  console.error("Missing GEMINI_API_KEY environment variable");
+}
+
 // Initialize the Gemini API with the API key from environment variables
-const genAI = new GoogleGenerativeAI(process.env.NEXT_PUBLIC_GEMINI_API_KEY);
+const genAI = new GoogleGenerativeAI(API_KEY || "dummy-key");
 
 // Define model options with fallbacks in priority order
 const MODEL_OPTIONS = {
@@ -15,6 +23,16 @@ const MODEL_OPTIONS = {
  * Formats an error message from Gemini API for better user feedback
  */
 const formatErrorMessage = (error) => {
+  // Check if the API key is missing or invalid
+  if (!API_KEY) {
+    return "API key is not configured. Please add your Gemini API key to the environment variables.";
+  }
+  
+  // Check for API key validation errors
+  if (error.message && error.message.toLowerCase().includes("api key not valid")) {
+    return "The Gemini API key is invalid. Please check your API key configuration.";
+  }
+  
   // Check for quota limits
   if (error.message && error.message.includes("quota")) {
     return "You've reached the AI generation quota limit. Please try again later or use manual quiz creation.";

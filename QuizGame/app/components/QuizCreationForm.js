@@ -8,7 +8,7 @@ import { db } from '../firebase/config';
 import { ref, push, set, serverTimestamp, get, update } from 'firebase/database';
 import { recordQuizCreated } from '../firebase/statistics';
 import { getAllCategories } from '../firebase/database';
-import { generateQuizWithAI } from '../services/geminiService';
+import { generateQuiz } from '../actions/quizActions';
 import MathJaxRenderer from './MathJaxRenderer';
 import {
   DndContext,
@@ -571,11 +571,15 @@ export default function QuizCreationForm() {
       setIsGeneratingWithAI(true);
       setAiGenerationError('');
 
-      // Generate questions using the Gemini API
-      const generatedQuestions = await generateQuizWithAI(quizData.description, 10);
+      // Use the server action to generate questions
+      const result = await generateQuiz(quizData.description, 10);
+      
+      if (!result.success) {
+        throw new Error(result.error);
+      }
       
       // Map the generated questions to our quiz format
-      const formattedQuestions = generatedQuestions.map((q, index) => ({
+      const formattedQuestions = result.data.map((q, index) => ({
         id: quizData.questions.length + index + 1,
         question: q.question,
         options: q.options,
@@ -606,7 +610,15 @@ export default function QuizCreationForm() {
       console.error('Error generating quiz with AI:', error);
       
       // Display a more user-friendly error message
-      if (error.message && error.message.includes('quota')) {
+      if (error.message && error.message.includes('Missing API key')) {
+        setAiGenerationError(
+          'Missing API key. Please configure your Gemini API key in the environment variables (GEMINI_API_KEY).'
+        );
+      } else if (error.message && error.message.toLowerCase().includes('api key not valid')) {
+        setAiGenerationError(
+          'The Gemini API key is invalid. Please check your API key in the environment variables (GEMINI_API_KEY).'
+        );
+      } else if (error.message && error.message.includes('quota')) {
         setAiGenerationError(
           'AI generation quota reached. You can still create a quiz manually, or try again later when your quota resets.'
         );

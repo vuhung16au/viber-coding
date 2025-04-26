@@ -134,7 +134,7 @@ const app = initializeApp(firebaseConfig);
 const database = getDatabase(app);
 
 // Initialize the Gemini API with the API key from environment variables
-const genAI = new GoogleGenerativeAI(process.env.NEXT_PUBLIC_GEMINI_API_KEY);
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 // Get the generative model
 const model = genAI.getGenerativeModel({ model: modelName });

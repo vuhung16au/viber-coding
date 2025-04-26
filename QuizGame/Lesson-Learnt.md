@@ -9,3 +9,4 @@ I've learned some important lessons from this project:
 - To debug the code, a good understanding of next.js and firebase is required. I had to spend a lot of time debugging the code, which was frustrating.
 - How to report a bug to Claude. Provide a detailed description of the bug, including the steps to reproduce it, the expected behavior, and the actual behavior. Include any error messages. Provide (multiple) screenshots if possible. Thanks the multi-modal feature of Claude supporting multiple screenshots.
 - After gathering tech requirements, function list, db struture, UI design, URL list, NFR, required framework, we need to create a plan for AI agent to follow. Any LLM can help with this. 
+- I had to instruct Claude to implement quiz generation from server side (using `GEMINI_API_KEY`), instead of `NEXT_PUBLIC_GEMINI_API_KEY`, which is run on client side - and hence, exposes Gemini API key to the client.
