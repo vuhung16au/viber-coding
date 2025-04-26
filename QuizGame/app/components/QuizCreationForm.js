@@ -9,6 +9,122 @@ import { ref, push, set, serverTimestamp, get, update } from 'firebase/database'
 import { recordQuizCreated } from '../firebase/statistics';
 import { getAllCategories } from '../firebase/database';
 import { generateQuizWithAI } from '../services/geminiService';
+import MathJaxRenderer from './MathJaxRenderer';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+
+// Sortable question item component
+function SortableQuestionItem({ question, index, onEdit, onRemove, onMoveUp, onMoveDown, isFirst, isLast }) {
+  const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: question.id.toString() });
+  
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+  
+  return (
+    <div 
+      ref={setNodeRef} 
+      style={style}
+      className="p-4 border rounded-lg dark:border-gray-700 bg-gray-50 dark:bg-gray-900 transition-colors"
+    >
+      <div className="flex justify-between items-start">
+        <div className="flex-1">
+          <div className="flex items-center">
+            <div 
+              className="mr-2 text-gray-400 cursor-move" 
+              {...attributes} 
+              {...listeners}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+              </svg>
+            </div>
+            <p className="font-medium text-gray-800 dark:text-gray-200">
+              {index + 1}. <MathJaxRenderer content={question.question} />
+            </p>
+          </div>
+          <ul className="mt-2 space-y-1 ml-7">
+            {question.options.map((option, optIndex) => (
+              <li 
+                key={optIndex} 
+                className={option === question.correctAnswer ? 
+                  'text-green-600 dark:text-green-400' : 
+                  'text-gray-600 dark:text-gray-400'
+                }
+              >
+                {String.fromCharCode(65 + optIndex)}. <MathJaxRenderer content={option} />
+                {option === question.correctAnswer && ' ✓'}
+              </li>
+            ))}
+          </ul>
+        </div>
+        <div className="flex space-x-2">
+          <button
+            type="button"
+            onClick={() => onEdit(question)}
+            className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
+            aria-label="Edit question"
+            title="Edit question"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+            </svg>
+          </button>
+          <button
+            type="button"
+            onClick={() => onRemove(question.id)}
+            className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
+            aria-label="Delete question"
+            title="Delete question"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
+            </svg>
+          </button>
+          <button
+            type="button"
+            onClick={() => onMoveUp(index)}
+            disabled={isFirst}
+            className={`${isFirst ? 'text-gray-400 cursor-not-allowed' : 'text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-300'}`}
+            aria-label="Move question up"
+            title="Move question up"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+            </svg>
+          </button>
+          <button
+            type="button"
+            onClick={() => onMoveDown(index)}
+            disabled={isLast}
+            className={`${isLast ? 'text-gray-400 cursor-not-allowed' : 'text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-300'}`}
+            aria-label="Move question down"
+            title="Move question down"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function QuizCreationForm() {
   const router = useRouter();
@@ -24,7 +140,8 @@ export default function QuizCreationForm() {
     categoryId: '', 
     tags: '', 
     questions: [],
-    isFeatured: false 
+    isFeatured: false,
+    isPublic: false // Default to private for backward compatibility
   });
   
   // Add new state variables for AI generation
@@ -365,7 +482,8 @@ export default function QuizCreationForm() {
       questions: questionIds,
       userId: userId,
       createdAt: serverTimestamp(),
-      isFeatured: quizData.isFeatured || false // Add isFeatured property
+      isFeatured: quizData.isFeatured || false, // Add isFeatured property
+      isPublic: quizData.isPublic || false // Add isPublic property
     });
     
     return quizId;
@@ -435,7 +553,8 @@ export default function QuizCreationForm() {
       questions: questionIds,
       // Don't update userId - keep the original creator
       updatedAt: serverTimestamp(),
-      isFeatured: quizData.isFeatured || false
+      isFeatured: quizData.isFeatured || false,
+      isPublic: quizData.isPublic || false // Add isPublic property
     });
     
     return quizId;
@@ -485,7 +604,19 @@ export default function QuizCreationForm() {
       setAiGenerationError(''); // Clear any errors
     } catch (error) {
       console.error('Error generating quiz with AI:', error);
-      setAiGenerationError(`Failed to generate quiz: ${error.message || 'An unexpected error occurred'}`);
+      
+      // Display a more user-friendly error message
+      if (error.message && error.message.includes('quota')) {
+        setAiGenerationError(
+          'AI generation quota reached. You can still create a quiz manually, or try again later when your quota resets.'
+        );
+      } else if (error.message && error.message.includes('429')) {
+        setAiGenerationError(
+          'AI service is currently busy. Please try again in a few minutes or create your quiz manually.'
+        );
+      } else {
+        setAiGenerationError(`${error.message || 'An unexpected error occurred during quiz generation'}`);
+      }
     } finally {
       setIsGeneratingWithAI(false);
     }
@@ -561,6 +692,61 @@ export default function QuizCreationForm() {
       setIsSubmitting(false);
     }
   };
+
+  // Handle moving a question up (decreasing its index)
+  const handleMoveQuestionUp = (index) => {
+    if (index <= 0) return; // Already at the top
+    
+    const reorderedQuestions = Array.from(quizData.questions);
+    const [removed] = reorderedQuestions.splice(index, 1);
+    reorderedQuestions.splice(index - 1, 0, removed);
+    
+    setQuizData({
+      ...quizData,
+      questions: reorderedQuestions
+    });
+  };
+
+  // Handle moving a question down (increasing its index)
+  const handleMoveQuestionDown = (index) => {
+    if (index >= quizData.questions.length - 1) return; // Already at the bottom
+    
+    const reorderedQuestions = Array.from(quizData.questions);
+    const [removed] = reorderedQuestions.splice(index, 1);
+    reorderedQuestions.splice(index + 1, 0, removed);
+    
+    setQuizData({
+      ...quizData,
+      questions: reorderedQuestions
+    });
+  };
+
+  // Handle drag end event from dnd-kit
+  const handleDragEnd = (event) => {
+    const { active, over } = event;
+
+    if (active.id !== over.id) {
+      const activeIndex = quizData.questions.findIndex(
+        (question) => question.id.toString() === active.id
+      );
+      const overIndex = quizData.questions.findIndex(
+        (question) => question.id.toString() === over.id
+      );
+      
+      setQuizData({
+        ...quizData,
+        questions: arrayMove(quizData.questions, activeIndex, overIndex)
+      });
+    }
+  };
+  
+  // Configure sensors for drag and drop
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
 
   if (loadingQuiz) {
     return (
@@ -765,6 +951,23 @@ export default function QuizCreationForm() {
             <label className="flex items-center text-sm font-medium text-gray-700 dark:text-gray-300">
               <input
                 type="checkbox"
+                name="isPublic"
+                checked={quizData.isPublic}
+                onChange={(e) => setQuizData({
+                  ...quizData,
+                  isPublic: e.target.checked
+                })}
+                className="w-4 h-4 mr-2 text-blue-600 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 dark:bg-gray-700 dark:border-gray-600"
+              />
+              Public Quiz
+            </label>
+            <p className="text-xs text-gray-500 mt-1 ml-6">Public quizzes are visible to all users. Private quizzes are only visible to you.</p>
+          </div>
+
+          <div className="mb-4">
+            <label className="flex items-center text-sm font-medium text-gray-700 dark:text-gray-300">
+              <input
+                type="checkbox"
                 name="isFeatured"
                 checked={quizData.isFeatured}
                 onChange={(e) => setQuizData({
@@ -786,43 +989,42 @@ export default function QuizCreationForm() {
           {/* Existing Questions List */}
           {quizData.questions.length > 0 && (
             <div className="mb-6">
-              <h3 className="text-lg font-medium mb-3 text-gray-800 dark:text-gray-200">Added Questions</h3>
-              <div className="space-y-3">
-                {quizData.questions.map((question, index) => (
-                  <div key={question.id} className="p-4 border rounded-lg dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <p className="font-medium text-gray-800 dark:text-gray-200">
-                          {index + 1}. {question.question}
-                        </p>
-                        <ul className="mt-2 space-y-1">
-                          {question.options.map((option, optIndex) => (
-                            <li 
-                              key={optIndex} 
-                              className={option === question.correctAnswer ? 
-                                'text-green-600 dark:text-green-400' : 
-                                'text-gray-600 dark:text-gray-400'
-                              }
-                            >
-                              {String.fromCharCode(65 + optIndex)}. {option}
-                              {option === question.correctAnswer && ' ✓'}
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveQuestion(question.id)}
-                        className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
-                      >
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                          <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
-                        </svg>
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
+              <h3 className="text-lg font-medium mb-3 text-gray-800 dark:text-gray-200">
+                Added Questions
+                <span className="ml-2 text-sm font-normal text-gray-500 dark:text-gray-400">
+                  (Drag to reorder)
+                </span>
+              </h3>
+              <DndContext
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                onDragEnd={handleDragEnd}
+              >
+                <SortableContext
+                  items={quizData.questions.map(question => question.id.toString())}
+                  strategy={verticalListSortingStrategy}
+                >
+                  {quizData.questions.map((question, index) => (
+                    <SortableQuestionItem
+                      key={question.id.toString()}
+                      question={question}
+                      index={index}
+                      onEdit={(editedQuestion) => {
+                        setCurrentQuestion({
+                          ...editedQuestion,
+                          options: [...editedQuestion.options]
+                        });
+                        handleRemoveQuestion(editedQuestion.id);
+                      }}
+                      onRemove={handleRemoveQuestion}
+                      onMoveUp={handleMoveQuestionUp}
+                      onMoveDown={handleMoveQuestionDown}
+                      isFirst={index === 0}
+                      isLast={index === quizData.questions.length - 1}
+                    />
+                  ))}
+                </SortableContext>
+              </DndContext>
             </div>
           )}
           

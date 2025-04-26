@@ -453,12 +453,20 @@ export default function QuizPage() {
 
   return (
     <div className="flex flex-col min-h-screen p-4">
-      <header className="mb-8 text-center">
+      <header className="mb-6 text-center">
         <h1 className="text-3xl font-bold mb-2 text-gray-900 dark:text-white">{quiz.title}</h1>
         <p className="text-gray-600 dark:text-gray-400">Question {currentQuestionIndex + 1} of {quiz.questions.length}</p>
       </header>
 
-      <div className="flex-grow mb-8">
+      {/* Add a question progress bar */}
+      <div className="w-full bg-gray-200 dark:bg-gray-700 h-2 rounded-full mb-6">
+        <div 
+          className="bg-blue-600 dark:bg-blue-500 h-2 rounded-full transition-all duration-300"
+          style={{width: `${((currentQuestionIndex + 1) / quiz.questions.length) * 100}%`}}
+        ></div>
+      </div>
+
+      <div className="flex-grow mb-4">
         <Question 
           question={currentQuestion} 
           onAnswer={handleAnswer} 
@@ -466,60 +474,82 @@ export default function QuizPage() {
         />
       </div>
 
-      <div className="flex justify-between mt-6">
-        <button
-          onClick={prevQuestion}
-          disabled={currentQuestionIndex === 0}
-          className={`px-6 py-3 font-medium rounded-lg transition-colors ${
-            currentQuestionIndex === 0
-              ? 'bg-gray-300 text-gray-500 dark:bg-gray-700 dark:text-gray-400 cursor-not-allowed'
-              : 'bg-gray-200 text-gray-800 dark:bg-gray-700 dark:text-white hover:bg-gray-300 dark:hover:bg-gray-600'
-          }`}
-        >
-          Previous
-        </button>
-
-        {isLastQuestion ? (
-          <button
-            onClick={submitQuiz}
-            disabled={!currentAnswer}
-            className={`px-6 py-3 font-medium rounded-lg transition-colors ${
-              !currentAnswer
-                ? 'bg-gray-300 text-gray-500 dark:bg-gray-700 dark:text-gray-400 cursor-not-allowed'
-                : 'bg-green-600 text-white hover:bg-green-700'
-            }`}
-          >
-            Submit Quiz
-          </button>
-        ) : (
-          <button
-            onClick={nextQuestion}
-            disabled={!currentAnswer}
-            className={`px-6 py-3 font-medium rounded-lg transition-colors ${
-              !currentAnswer
-                ? 'bg-gray-300 text-gray-500 dark:bg-gray-700 dark:text-gray-400 cursor-not-allowed'
-                : 'bg-blue-600 text-white hover:bg-blue-700'
-            }`}
-          >
-            Next
-          </button>
-        )}
-      </div>
-
-      <div className="mt-8">
-        <div className="flex justify-center space-x-2">
-          {quiz.questions.map((_, index) => (
-            <div 
-              key={index} 
-              className={`w-3 h-3 rounded-full ${
-                index === currentQuestionIndex 
-                  ? 'bg-blue-600 dark:bg-blue-500' 
-                  : userAnswers[index] 
-                    ? 'bg-green-600 dark:bg-green-500' 
-                    : 'bg-gray-300 dark:bg-gray-600'
+      {/* Redesigned navigation controls - more accessible and better placed */}
+      <div className="sticky bottom-4 bg-white dark:bg-gray-800 py-3 px-4 rounded-lg shadow-lg w-full max-w-3xl mx-auto">
+        <div className="flex justify-between items-center">
+          {/* Question indicator circles */}
+          <div className="hidden md:flex items-center space-x-1 flex-1">
+            {quiz.questions.map((_, index) => (
+              <div 
+                key={index} 
+                className={`w-2 h-2 rounded-full ${
+                  index === currentQuestionIndex 
+                    ? 'bg-blue-600 dark:bg-blue-500' 
+                    : userAnswers[index] 
+                      ? 'bg-green-600 dark:bg-green-500' 
+                      : 'bg-gray-300 dark:bg-gray-600'
+                }`}
+              />
+            ))}
+          </div>
+          
+          {/* Navigation buttons - centered and more prominent */}
+          <div className="flex space-x-3 md:space-x-4 justify-center flex-1">
+            <button
+              onClick={prevQuestion}
+              disabled={currentQuestionIndex === 0}
+              className={`px-4 sm:px-6 py-2 sm:py-3 font-medium rounded-lg transition-colors flex items-center ${
+                currentQuestionIndex === 0
+                  ? 'bg-gray-300 text-gray-500 dark:bg-gray-700 dark:text-gray-400 cursor-not-allowed'
+                  : 'bg-gray-200 text-gray-800 dark:bg-gray-700 dark:text-white hover:bg-gray-300 dark:hover:bg-gray-600'
               }`}
-            />
-          ))}
+              aria-label="Previous question"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" />
+              </svg>
+              <span className="hidden xs:inline">Previous</span>
+            </button>
+
+            {isLastQuestion ? (
+              <button
+                onClick={submitQuiz}
+                disabled={!currentAnswer}
+                className={`px-4 sm:px-6 py-2 sm:py-3 font-medium rounded-lg transition-colors flex items-center ${
+                  !currentAnswer
+                    ? 'bg-gray-300 text-gray-500 dark:bg-gray-700 dark:text-gray-400 cursor-not-allowed'
+                    : 'bg-green-600 text-white hover:bg-green-700'
+                }`}
+                aria-label="Submit quiz"
+              >
+                <span>Submit Quiz</span>
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 ml-1" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                </svg>
+              </button>
+            ) : (
+              <button
+                onClick={nextQuestion}
+                disabled={!currentAnswer}
+                className={`px-4 sm:px-6 py-2 sm:py-3 font-medium rounded-lg transition-colors flex items-center ${
+                  !currentAnswer
+                    ? 'bg-gray-300 text-gray-500 dark:bg-gray-700 dark:text-gray-400 cursor-not-allowed'
+                    : 'bg-blue-600 text-white hover:bg-blue-700'
+                }`}
+                aria-label="Next question"
+              >
+                <span className="hidden xs:inline">Next</span>
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 ml-1" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+                </svg>
+              </button>
+            )}
+          </div>
+          
+          {/* Question count indicator */}
+          <div className="hidden md:block text-sm text-gray-600 dark:text-gray-400 flex-1 text-right">
+            {currentQuestionIndex + 1} / {quiz.questions.length}
+          </div>
         </div>
       </div>
     </div>

@@ -2,6 +2,7 @@ import { Inter } from 'next/font/google';
 import './globals.css';
 import Script from 'next/script';
 import { redirect } from 'next/navigation';
+import GoogleAnalytics from './components/GoogleAnalytics';
 
 // Configure the Inter font with display settings to avoid preload warning
 const inter = Inter({
@@ -24,6 +25,7 @@ export default function RootLayout({ children }) {
     <html lang="en" suppressHydrationWarning className={inter.variable}>
       <head>
         <link rel="icon" href="/favicon.ico" />
+        <GoogleAnalytics />
       </head>
       <body className={inter.className}>{children}</body>
       

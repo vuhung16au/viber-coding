@@ -232,3 +232,27 @@ ref.
 #file:quizData.js  
 #file:QuizCreationForm.js  
 #file:page.js
+
+# quiz card edit, order by drag/drop 
+
+http://localhost:3000/en/create-quiz
+
+In quiz create page, 
+- users can edit quiz card that already created. 
+- users can reorder questions in a quiz by drag/drop quiz card. 
+
+# quiz public visible mode 
+
+http://localhost:3000/en/create-quiz
+
+In quiz create page,
+
+users have an option (public-visible-mode) to set the quiz as "private" (only see by the creator) or "public" (can be seen in public by everyone)
+
+if a quiz is set to "public", it will be shown on quiz public page:
+
+otherwise, it will stay private.
+
+To deal with existing quiz that is created before this change, set public-visible-mode default value to 'false' (not visible by public)
+
+Please make change to database structure if needed. 

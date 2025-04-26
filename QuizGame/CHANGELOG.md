@@ -2,6 +2,58 @@
 
 All notable changes to the Quiz GetItRight project will be documented in this file.
 
+## [1.0.8] - 2025-04-26
+
+### Added
+- Firebase Analytics integration for comprehensive user behavior tracking
+- Event tracking utilities for quiz interactions (start, complete, answer)
+- User engagement metrics (registration, login, search)
+- Custom analytics utility functions for standardized event tracking
+- Client-side analytics initialization with proper Next.js integration
+
+### Changed
+- Enhanced Google Analytics implementation with Firebase Analytics integration
+- Optimized analytics to properly work with Next.js Server and Client components
+- Updated Firebase configuration to include analytics capabilities
+
+## [1.0.7] - 2025-04-26
+
+### Added
+- Google Analytics 4 (GA4) integration
+- Tracking setup for the production site (https://quiz-gotitright.vercel.app/)
+- Measurement ID configuration in environment variables
+- Analytics component for tracking page views
+
+### Changed
+- Enhanced application with analytics capabilities
+- Added performance-optimized analytics script loading
+
+## [1.0.6] - 2025-04-26
+
+### Added
+- Public/private visibility toggle for quizzes
+- Visual indicators showing whether a quiz is public or private
+- Public quizzes are displayed on the public quizzes page
+- Private quizzes are only visible to their creators
+- New "isPublic" field in the quiz database structure
+
+### Changed
+- Quiz creation form updated with public/private visibility option
+- Quizzes page now filters based on visibility permissions
+- All existing quizzes set to private by default for backward compatibility
+
+## [1.0.5] - 2025-04-26
+
+### Added
+- Drag and drop functionality for reordering quiz questions
+- Up/down arrow buttons for moving questions one position at a time
+- Visual feedback when dragging questions (highlight and shadow effects)
+- Automatic question renumbering when order changes
+
+### Changed
+- Enhanced quiz creation experience with multiple reordering options
+- Improved quiz editing workflow with intuitive question management
+
 ## [1.0.4] - 2025-04-26
 
 ### Added

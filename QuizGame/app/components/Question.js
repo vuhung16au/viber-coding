@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import MathJaxRenderer from './MathJaxRenderer';
 
 export default function Question({ question, onAnswer, showResult = false, selectedAnswer = null }) {
   const [selected, setSelected] = useState(selectedAnswer);
@@ -11,7 +12,9 @@ export default function Question({ question, onAnswer, showResult = false, selec
   
   return (
     <div className="w-full max-w-3xl mx-auto p-6 bg-white dark:bg-gray-800 rounded-lg shadow-md">
-      <h2 className="text-xl font-bold mb-6 text-gray-900 dark:text-white">{question.question}</h2>
+      <h2 className="text-xl font-bold mb-6 text-gray-900 dark:text-white">
+        <MathJaxRenderer content={question.question} />
+      </h2>
       
       <div className="space-y-3">
         {question.answers && question.answers.map((answer, index) => {
@@ -40,7 +43,7 @@ export default function Question({ question, onAnswer, showResult = false, selec
             >
               <div className="flex items-center">
                 <span className="mr-2 font-medium">{String.fromCharCode(65 + index)}.</span>
-                <span>{answerText}</span>
+                <span className="flex-1"><MathJaxRenderer content={answerText} /></span>
                 
                 {showResult && answer.id === question.correctAnswer && (
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 ml-auto text-green-500" viewBox="0 0 20 20" fill="currentColor">

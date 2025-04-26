@@ -1,6 +1,6 @@
 {
   "name": "quiz-gotitright",
-  "version": "1.0.1",
+  "version": "1.0.8",
   "description": "A Firebase-backed quiz application",
   "private": true,
   "scripts": {
@@ -12,13 +12,19 @@
     "vercel-build": "next build"
   },
   "dependencies": {
+    "@dnd-kit/core": "^6.3.1",
+    "@dnd-kit/sortable": "^10.0.0",
+    "@dnd-kit/utilities": "^3.2.2",
     "@google/generative-ai": "^0.24.0",
     "autoprefixer": "^10.4.21",
     "firebase": "^10.14.1",
+    "mathjax": "^3.2.2",
+    "mathjax-react": "^2.0.1",
     "next": "^14.1.0",
     "next-themes": "^0.4.6",
     "postcss": "^8.5.3",
     "react": "^18.3.1",
+    "react-beautiful-dnd": "^13.1.1",
     "react-dom": "^18.3.1",
     "unidecode": "^1.1.0"
   },
