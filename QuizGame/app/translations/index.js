@@ -1,11 +1,17 @@
 import en from './en';
 import vi from './vi';
-import ja from './ja'; // Import Japanese translations
+import ja from './ja';
+import fr from './fr';
+import zh from './zh';
+import de from './de';
 
 const translations = {
   en,
   vi,
-  ja, // Add Japanese to the translations object
+  ja,
+  fr,
+  zh,
+  de
 };
 
 // Create a useTranslation hook that can be imported in components
