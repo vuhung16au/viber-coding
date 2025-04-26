@@ -6,6 +6,7 @@ import { useAuth } from '@/app/firebase/auth';
 import { db } from '@/app/firebase/config';
 import { ref, get } from 'firebase/database';
 import { useLanguage } from '@/app/context/LanguageContext';
+import { useIsAdmin } from '@/app/hooks/useIsAdmin';
 import { 
   getAllCategories, 
   createCategory, 
@@ -19,9 +20,9 @@ export default function CategoryManagementPage() {
   const { currentUser } = useAuth();
   const router = useRouter();
   const { t, locale } = useLanguage();
+  const { isAdmin, isLoading: isAdminLoading } = useIsAdmin();
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [isAdmin, setIsAdmin] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
   const [isInitializing, setIsInitializing] = useState(false);
@@ -38,9 +39,9 @@ export default function CategoryManagementPage() {
   // Edit category state
   const [editCategory, setEditCategory] = useState(null);
   
-  // Check if user is admin and fetch categories
+  // Fetch categories when user is confirmed as admin
   useEffect(() => {
-    const checkAdminAndFetchCategories = async () => {
+    const fetchCategories = async () => {
       if (!currentUser) {
         router.push(`/${locale}/login`);
         return;
@@ -49,31 +50,31 @@ export default function CategoryManagementPage() {
       try {
         setLoading(true);
         
-        // Check if user is admin by comparing email with environment variable
-        const isUserAdmin = currentUser.email === process.env.NEXT_PUBLIC_ADMIN_EMAIL;
-        setIsAdmin(isUserAdmin);
-        
-        if (!isUserAdmin) {
+        if (!isAdmin && !isAdminLoading) {
           setError('You do not have permission to access this page');
           setLoading(false);
           return;
         }
         
-        // Fetch all categories including inactive ones
-        const categoriesData = await getAllCategories(true);
-        // Sort by display order
-        const sortedCategories = categoriesData.sort((a, b) => a.displayOrder - b.displayOrder);
-        setCategories(sortedCategories);
+        if (isAdmin) {
+          // Fetch all categories including inactive ones
+          const categoriesData = await getAllCategories(true);
+          // Sort by display order
+          const sortedCategories = categoriesData.sort((a, b) => a.displayOrder - b.displayOrder);
+          setCategories(sortedCategories);
+        }
       } catch (err) {
-        console.error('Error checking admin status or fetching categories:', err);
+        console.error('Error fetching categories:', err);
         setError('Failed to load categories. Please try again later.');
       } finally {
         setLoading(false);
       }
     };
     
-    checkAdminAndFetchCategories();
-  }, [currentUser, router, locale]);
+    if (!isAdminLoading) {
+      fetchCategories();
+    }
+  }, [currentUser, router, locale, isAdmin, isAdminLoading]);
   
   // Function to generate slug from name
   const generateSlug = (name) => {

@@ -328,9 +328,20 @@ export const getGlobalStatistics = async () => {
 
 /**
  * Clean up outdated statistics (should be run periodically)
+ * Note: This requires admin privileges or authenticated user with write access
  */
 export const cleanupStatistics = async () => {
   try {
+    // Check if user has permission to update statistics
+    const statsRef = ref(db, 'statistics');
+    // Try to read first to check permissions
+    try {
+      await get(statsRef);
+    } catch (permError) {
+      console.warn('Statistics cleanup skipped: No permission to access statistics');
+      return; // Exit early if no permission
+    }
+    
     // Get all user statistics
     const usersStatsRef = ref(db, 'statistics/users');
     const usersSnapshot = await get(usersStatsRef);
@@ -410,6 +421,7 @@ export const cleanupStatistics = async () => {
     
   } catch (error) {
     console.error('Error cleaning up statistics:', error);
+    // Don't rethrow the error to prevent app crashes
   }
 };
 

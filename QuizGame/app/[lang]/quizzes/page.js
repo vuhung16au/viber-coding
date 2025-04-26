@@ -31,6 +31,7 @@ export default function Quizzes() {
         if (categoriesSnapshot.exists()) {
           const categoriesData = Object.values(categoriesSnapshot.val())
             .filter(cat => cat.isActive)
+            .map(cat => ({ ...cat, id: cat.id || `cat-${Math.random().toString(36).substr(2, 9)}` })) // Ensure each category has a unique ID
             .sort((a, b) => a.displayOrder - b.displayOrder);
           setCategories(categoriesData);
         }
@@ -158,7 +159,7 @@ export default function Quizzes() {
                 onChange={handleCategoryChange}
                 className="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white"
               >
-                <option value="all">All Categories</option>
+                <option key="all-categories" value="all">All Categories</option>
                 {categories.map((category) => (
                   <option key={category.id} value={category.id}>
                     {category.name}

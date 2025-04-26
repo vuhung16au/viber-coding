@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/app/firebase/auth';
+import { useIsAdmin } from '@/app/hooks/useIsAdmin';
 import { getGlobalStatistics, scheduleStatisticsCleanup, cleanupStatistics } from '@/app/firebase/statistics';
 import { useTranslation } from '@/app/translations';
 import StatisticsLeaderboard from '@/app/components/StatisticsLeaderboard';
@@ -13,6 +14,7 @@ export default function StatisticsPage() {
   const { lang } = params;
   const { t } = useTranslation(lang);
   const { user, loading } = useAuth();
+  const { isAdmin } = useIsAdmin();
   const router = useRouter();
   const [stats, setStats] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -256,7 +258,7 @@ export default function StatisticsPage() {
       )}
       
       {/* Admin section */}
-      {user && user.email === process.env.NEXT_PUBLIC_ADMIN_EMAIL && (
+      {isAdmin && (
         <div className="mt-10 bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
           <h3 className="text-xl font-semibold mb-4 dark:text-white text-gray-800">{t('statistics.adminTools')}</h3>
           <button 

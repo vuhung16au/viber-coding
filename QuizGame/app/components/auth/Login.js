@@ -43,15 +43,17 @@ export default function Login() {
     try {
       setError('');
       setLoading(true);
-      await loginWithGoogle();
-      router.push('/dashboard');
+      const result = await loginWithGoogle();
+      if (result.user) {
+        router.push('/dashboard');
+      }
     } catch (error) {
-      if (error.code === 'auth/configuration-not-found') {
-        setError('Google authentication is not properly configured. Please contact support.');
-      } else if (error.code === 'auth/unauthorized-domain') {
-        setError('This domain is not authorized for Google sign-in. Please add "quiz-gotitright.vercel.app" to the Firebase console under Authentication -> Settings -> Authorized domains.');
+      if (error.code === 'auth/popup-closed-by-user') {
+        setError('Google sign-in was cancelled. Please try again.');
+      } else if (error.code === 'auth/popup-blocked') {
+        setError('Popup was blocked by your browser. Please allow popups for this site.');
       } else {
-        setError('Failed to log in with Google: ' + error.message);
+        setError('Failed to sign in with Google: ' + error.message);
       }
       console.error('Google sign-in error:', error);
     } finally {

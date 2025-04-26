@@ -549,3 +549,129 @@ export const updateQuiz = async (quizId, quizData) => {
     return false;
   }
 };
+
+/**
+ * Check if a user is an admin
+ * @param {string} userId - User ID to check
+ * @returns {Promise<boolean>} Whether the user is an admin
+ */
+export const checkIfUserIsAdmin = async (userId) => {
+  if (!userId) return false;
+  
+  console.log(`[DB] Checking admin status for user: ${userId}`);
+  
+  try {
+    // First check at the main path (users collection)
+    const adminRef = ref(database, `users/${userId}/isAdmin`);
+    console.log(`[DB] Checking path: users/${userId}/isAdmin`);
+    const snapshot = await get(adminRef);
+    
+    // If the isAdmin property exists at main path and is true, the user is an admin
+    if (snapshot.exists()) {
+      console.log(`[DB] Found admin status at main path: ${snapshot.val()}`);
+      if (snapshot.val() === true) {
+        return true;
+      }
+    } else {
+      console.log(`[DB] No admin flag found at users/${userId}/isAdmin`);
+    }
+    
+    // Check directly at the root level (without 'users/' prefix)
+    const rootAdminRef = ref(database, `${userId}/isAdmin`);
+    console.log(`[DB] Checking path: ${userId}/isAdmin`);
+    const rootSnapshot = await get(rootAdminRef);
+    
+    if (rootSnapshot.exists()) {
+      console.log(`[DB] Found admin status at root path: ${rootSnapshot.val()}`);
+      if (rootSnapshot.val() === true) {
+        return true;
+      }
+    } else {
+      console.log(`[DB] No admin flag found at ${userId}/isAdmin`);
+    }
+    
+    // Also check in the profile nested object
+    const profileAdminRef = ref(database, `${userId}/profile/isAdmin`);
+    console.log(`[DB] Checking path: ${userId}/profile/isAdmin`);
+    const profileSnapshot = await get(profileAdminRef);
+    
+    if (profileSnapshot.exists()) {
+      console.log(`[DB] Found admin status in profile: ${profileSnapshot.val()}`);
+      if (profileSnapshot.val() === true) {
+        return true;
+      }
+    } else {
+      console.log(`[DB] No admin flag found in profile`);
+    }
+    
+    // Check in the users collection with profile path
+    const userProfileAdminRef = ref(database, `users/${userId}/profile/isAdmin`);
+    console.log(`[DB] Checking path: users/${userId}/profile/isAdmin`);
+    const userProfileSnapshot = await get(userProfileAdminRef);
+    
+    if (userProfileSnapshot.exists()) {
+      console.log(`[DB] Found admin status in users profile: ${userProfileSnapshot.val()}`);
+      if (userProfileSnapshot.val() === true) {
+        return true;
+      }
+    } else {
+      console.log(`[DB] No admin flag found in users profile`);
+    }
+    
+    // If we've checked all locations and found nothing, user is not admin
+    console.log(`[DB] User ${userId} is not an admin after checking all paths`);
+    return false;
+  } catch (error) {
+    console.error('[DB] Error checking admin status:', error);
+    return false;
+  }
+};
+
+/**
+ * Set a user's admin status
+ * @param {string} userId - User ID to update
+ * @param {boolean} isAdmin - Whether the user should be an admin
+ * @returns {Promise<boolean>} Success status
+ */
+export const setUserAdminStatus = async (userId, isAdmin) => {
+  if (!userId) {
+    console.error('[DB] Cannot set admin status: No user ID provided');
+    return false;
+  }
+  
+  try {
+    // Convert to boolean to ensure we always store a boolean value
+    const adminValue = Boolean(isAdmin);
+    console.log(`[DB] Setting admin status for user ${userId} to ${adminValue}`);
+
+    // Set at the main path used by the app
+    const adminRef = ref(database, `users/${userId}/isAdmin`);
+    console.log(`[DB] Setting admin flag at path: users/${userId}/isAdmin`);
+    await set(adminRef, adminValue);
+    console.log(`[DB] Successfully set admin flag at users/${userId}/isAdmin`);
+    
+    // Also set at root level for consistency (as seen in the screenshot)
+    const rootAdminRef = ref(database, `${userId}/isAdmin`);
+    console.log(`[DB] Setting admin flag at path: ${userId}/isAdmin`);
+    await set(rootAdminRef, adminValue);
+    console.log(`[DB] Successfully set admin flag at ${userId}/isAdmin`);
+    
+    // Also update in the profile object (as seen in the screenshot)
+    const profileAdminRef = ref(database, `${userId}/profile/isAdmin`);
+    console.log(`[DB] Setting admin flag at path: ${userId}/profile/isAdmin`);
+    await set(profileAdminRef, adminValue);
+    console.log(`[DB] Successfully set admin flag at ${userId}/profile/isAdmin`);
+    
+    // Also update in the users/profile path
+    const userProfileAdminRef = ref(database, `users/${userId}/profile/isAdmin`);
+    console.log(`[DB] Setting admin flag at path: users/${userId}/profile/isAdmin`);
+    await set(userProfileAdminRef, adminValue);
+    console.log(`[DB] Successfully set admin flag at users/${userId}/profile/isAdmin`);
+    
+    console.log(`[DB] Admin status for user ${userId} set to ${adminValue} in all locations`);
+    return true;
+  } catch (error) {
+    console.error('[DB] Error setting admin status:', error);
+    return false;
+  }
+};

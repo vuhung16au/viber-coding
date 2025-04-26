@@ -10,11 +10,13 @@ import QuizCard from './QuizCard';
 import { useLanguage } from '../context/LanguageContext';
 import { getAllCategories } from '../firebase/database';
 import Pagination from './Pagination';
+import { useIsAdmin } from '../hooks/useIsAdmin';
 
 export default function Dashboard() {
   const { currentUser } = useAuth();
   const { t, locale } = useLanguage();
   const router = useRouter();
+  const { isAdmin } = useIsAdmin();
   const [quizzesByCategory, setQuizzesByCategory] = useState({
     'General Knowledge': [],
     'Science & Technology': [],
@@ -461,7 +463,7 @@ export default function Dashboard() {
                     </div>
 
                     {/* Admin-only menu */}
-                    {currentUser && currentUser.email === process.env.NEXT_PUBLIC_ADMIN_EMAIL && (
+                    {isAdmin && (
                       <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
                         <h4 className="text-sm font-semibold text-gray-500 dark:text-gray-400 mb-2">
                           Admin Tools
