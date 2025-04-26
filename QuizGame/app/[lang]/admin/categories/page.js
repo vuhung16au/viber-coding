@@ -15,6 +15,7 @@ import {
   toggleCategoryStatus
 } from '@/app/firebase/database';
 import { setupCategoriesSystem } from '@/app/firebase/category-init';
+import Link from 'next/link';
 
 export default function CategoryManagementPage() {
   const { currentUser } = useAuth();
@@ -314,17 +315,22 @@ export default function CategoryManagementPage() {
               Category Management
             </h1>
             
-            <button
-              onClick={handleInitializeCategories}
-              disabled={isInitializing}
-              className={`px-4 py-2 ${
-                isInitializing 
-                ? 'bg-gray-400 cursor-not-allowed' 
-                : 'bg-purple-600 hover:bg-purple-700'
-              } text-white rounded-lg transition-colors mt-2 sm:mt-0`}
-            >
-              {isInitializing ? 'Initializing...' : 'Initialize/Migrate Categories'}
-            </button>
+            <div className="flex gap-3 mt-2 sm:mt-0">
+              <Link href="/en/admin" className="px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg transition-colors">
+                Back to Admin
+              </Link>
+              <button
+                onClick={handleInitializeCategories}
+                disabled={isInitializing}
+                className={`px-4 py-2 ${
+                  isInitializing 
+                  ? 'bg-gray-400 cursor-not-allowed' 
+                  : 'bg-purple-600 hover:bg-purple-700'
+                } text-white rounded-lg transition-colors`}
+              >
+                {isInitializing ? 'Initializing...' : 'Initialize/Migrate Categories'}
+              </button>
+            </div>
           </div>
           
           {error && (

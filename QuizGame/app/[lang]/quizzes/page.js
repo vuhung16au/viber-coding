@@ -20,7 +20,7 @@ export default function Quizzes() {
 
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
-  const [quizzesPerPage] = useState(9);
+  const [quizzesPerPage, setQuizzesPerPage] = useState(9);
 
   useEffect(() => {
     const fetchCategories = async () => {
@@ -29,10 +29,14 @@ export default function Quizzes() {
         const categoriesSnapshot = await get(categoriesRef);
         
         if (categoriesSnapshot.exists()) {
-          const categoriesData = Object.values(categoriesSnapshot.val())
-            .filter(cat => cat.isActive)
-            .map(cat => ({ ...cat, id: cat.id || `cat-${Math.random().toString(36).substr(2, 9)}` })) // Ensure each category has a unique ID
-            .sort((a, b) => a.displayOrder - b.displayOrder);
+          // Properly extract the Firebase document IDs
+          const categoriesData = Object.entries(categoriesSnapshot.val()).map(([id, category]) => ({
+            id,
+            ...category
+          }))
+          .filter(cat => cat.isActive)
+          .sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0));
+          
           setCategories(categoriesData);
         }
       } catch (error) {
@@ -110,10 +114,26 @@ export default function Quizzes() {
       quiz.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       quiz.tags?.toLowerCase().includes(searchTerm.toLowerCase());
     
-    const matchesCategory = 
-      selectedCategory === 'all' || 
-      quiz.category === selectedCategory ||
-      quiz.categoryId === selectedCategory;
+    // Enhanced category matching logic
+    const matchesCategory = selectedCategory === 'all' || (() => {
+      // Case 1: Direct match with categoryId
+      if (quiz.categoryId === selectedCategory) return true;
+      
+      // Case 2: Direct match with category string
+      if (quiz.category === selectedCategory) return true;
+      
+      // Case 3: Match category ID with a quiz that stores the category name
+      // Find the category object that matches the selected ID
+      const selectedCategoryObj = categories.find(cat => cat.id === selectedCategory);
+      if (selectedCategoryObj && quiz.category === selectedCategoryObj.name) return true;
+      
+      // Case 4: Match category name with a quiz that stores the category ID
+      // Find the category object that matches the quiz's stored ID
+      const quizCategoryObj = categories.find(cat => cat.id === quiz.categoryId);
+      if (quizCategoryObj && quizCategoryObj.id === selectedCategory) return true;
+      
+      return false;
+    })();
     
     return matchesSearch && matchesCategory;
   });
@@ -125,6 +145,12 @@ export default function Quizzes() {
 
   // Change page
   const paginate = (pageNumber) => setCurrentPage(pageNumber);
+  
+  // Handle items per page change
+  const handleItemsPerPageChange = (itemsPerPage) => {
+    setQuizzesPerPage(itemsPerPage);
+    setCurrentPage(1); // Reset to first page when changing items per page
+  };
 
   return (
     <div>
@@ -220,7 +246,8 @@ export default function Quizzes() {
               itemsPerPage={quizzesPerPage}
               totalItems={filteredQuizzes.length}
               currentPage={currentPage}
-              paginate={paginate}
+              onPageChange={paginate}
+              onItemsPerPageChange={handleItemsPerPageChange}
             />
           )}
         </>

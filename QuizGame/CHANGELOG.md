@@ -2,6 +2,21 @@
 
 All notable changes to the Quiz GetItRight project will be documented in this file.
 
+## [1.0.9] - 2025-04-26
+
+### Added
+- Improved question timeout functionality with visual countdown timer
+- Color-coded timer display (green, yellow, red) based on remaining time
+- Enhanced answer handling with clearer visual feedback
+- Better support for different answer text formats in quiz questions
+- Responsive UI improvements for question display
+- Proper cleanup of timer intervals to prevent memory leaks
+
+### Changed
+- Optimized question component for better performance and user experience
+- Improved accessibility for quiz answers with proper ARIA attributes
+- Enhanced visual styling for correct/incorrect answers
+
 ## [1.0.8] - 2025-04-26
 
 ### Added

@@ -141,7 +141,8 @@ export default function QuizCreationForm() {
     tags: '', 
     questions: [],
     isFeatured: false,
-    isPublic: false // Default to private for backward compatibility
+    isPublic: false, // Default to private for backward compatibility
+    defaultTimeout: 20 // Default timeout in seconds
   });
   
   // Add new state variables for AI generation
@@ -483,7 +484,8 @@ export default function QuizCreationForm() {
       userId: userId,
       createdAt: serverTimestamp(),
       isFeatured: quizData.isFeatured || false, // Add isFeatured property
-      isPublic: quizData.isPublic || false // Add isPublic property
+      isPublic: quizData.isPublic || false, // Add isPublic property
+      defaultTimeout: quizData.defaultTimeout || 20 // Add default timeout property
     });
     
     return quizId;
@@ -554,7 +556,8 @@ export default function QuizCreationForm() {
       // Don't update userId - keep the original creator
       updatedAt: serverTimestamp(),
       isFeatured: quizData.isFeatured || false,
-      isPublic: quizData.isPublic || false // Add isPublic property
+      isPublic: quizData.isPublic || false, // Add isPublic property
+      defaultTimeout: quizData.defaultTimeout || 20 // Add default timeout property
     });
     
     return quizId;
@@ -991,6 +994,26 @@ export default function QuizCreationForm() {
               Featured Quiz (Administrators only)
             </label>
             <p className="text-xs text-gray-500 mt-1 ml-6">Featured quizzes are displayed prominently on the dashboard.</p>
+          </div>
+
+          <div className="mb-4">
+            <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">
+              Answer Timeout (seconds)
+            </label>
+            <div className="relative">
+              <input
+                type="number"
+                name="defaultTimeout"
+                value={quizData.defaultTimeout}
+                onChange={handleQuizChange}
+                min="5"
+                max="120"
+                className="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Time allowed for answering each question. Default is 20 seconds.
+              </p>
+            </div>
           </div>
         </div>
 

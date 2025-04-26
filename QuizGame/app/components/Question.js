@@ -1,17 +1,75 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import MathJaxRenderer from './MathJaxRenderer';
 
-export default function Question({ question, onAnswer, showResult = false, selectedAnswer = null }) {
-  const [selected, setSelected] = useState(selectedAnswer);
+export default function Question({ question, onAnswer, showResult = false, selectedAnswer = null, timeoutInSeconds = 20, onTimeout }) {
+  const [selected, setSelected] = useState(null);
+  const [timeRemaining, setTimeRemaining] = useState(timeoutInSeconds);
+  const timeoutCallbackRef = useRef(onTimeout);
+  
+  // Update the ref when onTimeout changes
+  useEffect(() => {
+    timeoutCallbackRef.current = onTimeout;
+  }, [onTimeout]);
+  
+  // Update selected state when selectedAnswer prop changes
+  useEffect(() => {
+    setSelected(selectedAnswer);
+  }, [selectedAnswer]);
+  
+  // Setup countdown timer
+  useEffect(() => {
+    // Reset timer when question changes
+    setTimeRemaining(timeoutInSeconds);
+    
+    // Only start countdown if not showing results and timeout is enabled
+    if (!showResult && timeoutInSeconds > 0) {
+      const timer = setInterval(() => {
+        setTimeRemaining(prevTime => {
+          if (prevTime <= 1) {
+            clearInterval(timer);
+            // Trigger timeout callback when time reaches zero
+            const currentOnTimeout = timeoutCallbackRef.current;
+            if (currentOnTimeout) {
+              // Use setTimeout to avoid state updates during render
+              setTimeout(() => {
+                currentOnTimeout();
+              }, 0);
+            }
+            return 0;
+          }
+          return prevTime - 1;
+        });
+      }, 1000);
+      
+      // Cleanup interval on unmount or when question changes
+      return () => clearInterval(timer);
+    }
+  }, [question.id, timeoutInSeconds, showResult]);
   
   const handleOptionClick = (answerId) => {
     if (showResult) return; // Prevent changing answer if showing results
     setSelected(answerId);
     onAnswer(answerId);
   };
+
+  // Calculate color for timer based on remaining time
+  const getTimerColor = () => {
+    if (timeRemaining > timeoutInSeconds * 0.6) return 'text-green-500';
+    if (timeRemaining > timeoutInSeconds * 0.3) return 'text-yellow-500';
+    return 'text-red-500';
+  };
   
   return (
     <div className="w-full max-w-3xl mx-auto p-6 bg-white dark:bg-gray-800 rounded-lg shadow-md">
+      {/* Timer Display */}
+      {timeoutInSeconds > 0 && !showResult && (
+        <div className="mb-4 flex justify-end">
+          <div className={`text-lg font-bold ${getTimerColor()}`}>
+            {timeRemaining}s
+          </div>
+        </div>
+      )}
+      
       <h2 className="text-xl font-bold mb-6 text-gray-900 dark:text-white">
         <MathJaxRenderer content={question.question} />
       </h2>

@@ -12,7 +12,8 @@ import {
   updateProfile,
   deleteUser
 } from 'firebase/auth';
-import { auth } from './config';
+import { auth, db } from './config';
+import { ref, get, set, update } from 'firebase/database';
 
 // Create an authentication context
 const AuthContext = createContext();
@@ -38,9 +39,70 @@ export const AuthProvider = ({ children }) => {
   };
 
   // Login with Google using popup method
-  const loginWithGoogle = () => {
-    const provider = new GoogleAuthProvider();
-    return signInWithPopup(auth, provider);
+  const loginWithGoogle = async () => {
+    try {
+      const provider = new GoogleAuthProvider();
+      const result = await signInWithPopup(auth, provider);
+      
+      // After successful Google login, sync the user profile data to database
+      if (result.user) {
+        await syncUserProfileToDatabase(result.user);
+      }
+      
+      return result;
+    } catch (error) {
+      console.error("Google login error:", error);
+      throw error;
+    }
+  };
+
+  // Sync user profile to database
+  const syncUserProfileToDatabase = async (user) => {
+    if (!user) return;
+    
+    try {
+      // Check if user profile exists
+      const userRef = ref(db, `users/${user.uid}`);
+      const snapshot = await get(userRef);
+      
+      if (snapshot.exists()) {
+        // Update existing profile
+        await update(userRef, {
+          displayName: user.displayName || '',
+          email: user.email,
+          photoURL: user.photoURL || '',
+          lastLogin: new Date().toISOString(),
+        });
+      } else {
+        // Create new profile
+        await set(userRef, {
+          displayName: user.displayName || '',
+          email: user.email,
+          photoURL: user.photoURL || '',
+          username: '',
+          createdAt: new Date().toISOString(),
+          lastLogin: new Date().toISOString(),
+        });
+      }
+      
+      // Also create the profile sub-object with photoURL if it doesn't exist
+      const profileRef = ref(db, `users/${user.uid}/profile`);
+      const profileSnapshot = await get(profileRef);
+      
+      if (!profileSnapshot.exists() && user.photoURL) {
+        await set(profileRef, {
+          photoURL: user.photoURL,
+          displayName: user.displayName || ''
+        });
+      } else if (profileSnapshot.exists() && user.photoURL) {
+        // Update the photoURL in the profile
+        await update(profileRef, {
+          photoURL: user.photoURL
+        });
+      }
+    } catch (error) {
+      console.error('Error syncing user profile:', error);
+    }
   };
 
   // Sign out the current user
@@ -54,8 +116,31 @@ export const AuthProvider = ({ children }) => {
   };
 
   // Update user profile
-  const updateUserProfile = (user, data) => {
-    return updateProfile(user, data);
+  const updateUserProfile = async (user, data) => {
+    try {
+      // First update Firebase Auth profile
+      await updateProfile(user, data);
+      
+      // Then sync to database
+      if (data.photoURL || data.displayName) {
+        const userRef = ref(db, `users/${user.uid}`);
+        const updateData = {};
+        
+        if (data.photoURL) updateData.photoURL = data.photoURL;
+        if (data.displayName) updateData.displayName = data.displayName;
+        
+        await update(userRef, updateData);
+        
+        // Also update in profile subfolder
+        const profileRef = ref(db, `users/${user.uid}/profile`);
+        await update(profileRef, updateData);
+      }
+      
+      return true;
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      throw error;
+    }
   };
 
   // Delete user account
@@ -65,7 +150,12 @@ export const AuthProvider = ({ children }) => {
 
   // Subscribe to auth state changes
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      // If user is logged in, sync their profile data to database
+      if (user) {
+        await syncUserProfileToDatabase(user);
+      }
+      
       setCurrentUser(user);
       setLoading(false);
     });
@@ -83,7 +173,8 @@ export const AuthProvider = ({ children }) => {
     logout,
     resetPassword,
     updateUserProfile,
-    deleteUserAccount
+    deleteUserAccount,
+    syncUserProfileToDatabase
   };
 
   return (

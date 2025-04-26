@@ -363,3 +363,52 @@ export const deleteResult = async (resultId) => {
   await remove(resultRef);
   return resultId;
 };
+
+// Migrate existing quizzes to have default timeout
+export const migrateQuizTimeouts = async () => {
+  try {
+    console.log('Starting migration for quiz timeouts...');
+    
+    // Get all quizzes
+    const quizzesRef = ref(database, 'quizzes');
+    const snapshot = await get(quizzesRef);
+    
+    if (!snapshot.exists()) {
+      console.log('No quizzes found in the database.');
+      return { success: true, updated: 0, message: 'No quizzes found to update.' };
+    }
+    
+    const quizzes = snapshot.val();
+    const quizIds = Object.keys(quizzes);
+    let updatedCount = 0;
+    
+    console.log(`Found ${quizIds.length} quizzes to process.`);
+    
+    // Update each quiz with defaultTimeout if missing
+    for (const quizId of quizIds) {
+      const quiz = quizzes[quizId];
+      
+      if (!quiz.defaultTimeout) {
+        const quizRef = ref(database, `quizzes/${quizId}`);
+        await update(quizRef, {
+          defaultTimeout: 20 // Set default timeout to 20 seconds
+        });
+        updatedCount++;
+      }
+    }
+    
+    console.log(`Migration complete. Updated ${updatedCount} quizzes with default timeout of 20 seconds.`);
+    return { 
+      success: true, 
+      updated: updatedCount, 
+      message: `Updated ${updatedCount} quizzes with default timeout of 20 seconds.` 
+    };
+  } catch (error) {
+    console.error('Error during migration:', error);
+    return { 
+      success: false, 
+      error: error.message, 
+      message: 'Failed to update quizzes with default timeout.' 
+    };
+  }
+};
