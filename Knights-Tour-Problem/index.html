@@ -195,38 +195,87 @@
     </script>
 
     <div style="max-width: 800px; margin: 40px auto; padding: 20px; background-color: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-        <h2>About the Knight's Tour Problem</h2>
-        <p>The Knight's Tour is a sequence of moves by a knight on a chessboard such that the knight visits every square exactly once. The problem involves finding such a sequence that either returns to the starting position (closed/cyclic tour) or ends on a different square (open tour).</p>
-
-        <h3>Algorithm Complexity</h3>
+        <h2>Key Points</h2>
         <ul>
-            <li>Time Complexity: O(8^N), where N is the total number of squares</li>
-            <li>Space Complexity: O(N)</li>
-            <li>For a standard 8×8 chessboard, there are approximately 4×10^51 possible paths to explore</li>
+            <li>The Knight's Tour is a chess problem where a knight visits every square on the board exactly once, with open and closed tour types.</li>
+            <li>Research suggests it has been studied since the 9th century, with connections to mathematics and computer science.</li>
+            <li>It seems likely that both open and closed tours exist on an 8×8 board, with over 26 billion closed tours possible.</li>
+            <li>The evidence leans toward computational methods like backtracking and Warnsdorff’s algorithm for solving it efficiently.</li>
         </ul>
 
-        <h3>Warnsdorff's Heuristic</h3>
-        <p>This implementation uses Warnsdorff's rule (1823), an efficient heuristic that significantly improves the solution speed by:</p>
-        <ol>
-            <li>Always moving to the square that has the fewest available next moves</li>
-            <li>In case of a tie, choosing randomly among the tied positions</li>
-        </ol>
+        <h3>What is the Knight's Tour?</h3>
+        <p>The Knight's Tour is a classic chess puzzle where a knight must move to visit every square on the chessboard exactly once. The knight moves in an "L" shape—two squares in one direction and one square perpendicular. There are two main types: an <strong>open tour</strong>, where the knight cannot return to the starting square, and a <strong>closed tour</strong>, where the final position allows a move back to the start, forming a loop.</p>
 
-        <h3>Hamiltonian Path/Cycle</h3>
-        <p>The Knight's Tour is a specific instance of a Hamiltonian path problem in graph theory where:</p>
+        <h3>Historical and Mathematical Context</h3>
+        <p>This problem has roots dating back to the 9th century, with early references in ancient texts like Rudrata's <em>Kavyalankara</em>. It has been explored by mathematicians like Leonhard Euler and is linked to the Hamiltonian path problem in graph theory, making it significant in both chess and computer science.</p>
+
+        <h3>Solving the Problem</h3>
+        <p>For an 8×8 chessboard, research suggests both open and closed tours are possible, with a staggering 26,534,728,821,064 directed closed tours. Computational methods like backtracking (exploring all possible moves) and Warnsdorff’s algorithm (a heuristic prioritizing moves with fewer options) help solve it, especially for larger boards.</p>
+
+        <h3>Practical Applications</h3>
+        <p>You can try solving it on platforms like Chess.com (<a href="https://www.chess.com/terms/knights-tour-chess" target="_blank">Knight's Tour</a>), using their analysis board to track moves manually. Famous examples include the Turk's tour (closed) and Beverley's magic tour (open, with rows and columns summing to 260).</p>
+
+        <h3>Survey Note: Comprehensive Analysis of the Knight's Tour</h3>
+        <p>The Knight's Tour is a fascinating intersection of chess strategy, mathematics, and computer science, with a rich history and complex computational challenges. This note provides a detailed examination based on the provided sources, covering definitions, historical context, computational approaches, and practical applications.</p>
+
+        <h4>Definition and Types</h4>
+        <p>The Knight's Tour involves a knight on a chessboard making a sequence of moves such that it visits every square exactly once. The knight's movement is defined by its characteristic "L-shape": two squares in one direction and one square perpendicular, or one square in one direction and two squares perpendicular, resulting in eight possible moves from any given position. There are two primary classifications:</p>
         <ul>
-            <li>Each square on the chessboard represents a vertex</li>
-            <li>Valid knight moves represent edges between vertices</li>
-            <li>A solution to the Knight's Tour is a Hamiltonian path</li>
-            <li>A closed Knight's Tour is a Hamiltonian cycle</li>
+            <li><strong>Open Tour</strong>: The knight visits every square exactly once but ends at a position from which it cannot make a knight's move back to the starting square. This means the tour does not form a loop.</li>
+            <li><strong>Closed Tour</strong> (or re-entrant): The knight visits every square exactly once and ends at a position from which it can make one more knight's move to return to the starting square, effectively forming a continuous loop.</li>
         </ul>
 
-        <h3>References</h3>
-        <ul style="margin-bottom: 20px;">
-            <li><a href="https://en.wikipedia.org/wiki/Knight%27s_tour" target="_blank">Wikipedia: Knight's Tour</a></li>
-            <li><a href="https://www.chess.com/terms/knights-tour-chess" target="_blank">Chess.com: Knight's Tour</a></li>
-            <li><a href="https://en.wikipedia.org/wiki/Knight%27s_graph" target="_blank">Wikipedia: Knight's Graph</a></li>
+        <h4>Historical Context and Mathematical Significance</h4>
+        <p>The Knight's Tour has been studied for centuries, with the earliest known reference dating back to the 9th century in Rudrata's <em>Kavyalankara</em>, an Indian text that used a half-board knight's tour as a poetic figure (turagapadabandha). By the 14th century, Vedanta Desika composed verses using a 4×8 board knight's tour in <em>Paduka Sahasram</em> (chapter 30: Chitra Paddhati). In the 17th-18th century, Bhat Nilakantha described three symmetric closed tours in <em>Bhagavantabaskaraby</em>. European mathematicians like Leonhard Euler also contributed to its study, and H. C. von Warnsdorf developed a heuristic algorithm in 1823, which remains influential today.</p>
+
+        <h4>Existence and Statistics on Different Board Sizes</h4>
+        <p>The existence of Knight's Tours depends on the board size, and research has established clear conditions:</p>
+        <ul>
+            <li>For an <strong>8×8 chessboard</strong>, both open and closed tours exist. Specifically, there are <strong>26,534,728,821,064 directed closed tours</strong>, accounting for all possible sequences including reversals, reflections, and rotations. For open tours, the number is also significant, though exact figures are less commonly cited.</li>
+            <li>For smaller boards, the following table summarizes the number of directed tours (open and closed) on n×n boards, as per the Online Encyclopedia of Integer Sequences (OEIS) sequence A165134:</li>
         </ul>
+        <table style="width: 100%; border-collapse: collapse;">
+            <thead>
+                <tr>
+                    <th style="border: 1px solid #ddd; padding: 8px;">Board Size (n)</th>
+                    <th style="border: 1px solid #ddd; padding: 8px;">Number of Directed Tours</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td style="border: 1px solid #ddd; padding: 8px;">1</td>
+                    <td style="border: 1px solid #ddd; padding: 8px;">1</td>
+                </tr>
+                <tr>
+                    <td style="border: 1px solid #ddd; padding: 8px;">2</td>
+                    <td style="border: 1px solid #ddd; padding: 8px;">0</td>
+                </tr>
+                <tr>
+                    <td style="border: 1px solid #ddd; padding: 8px;">3</td>
+                    <td style="border: 1px solid #ddd; padding: 8px;">0</td>
+                </tr>
+                <tr>
+                    <td style="border: 1px solid #ddd; padding: 8px;">4</td>
+                    <td style="border: 1px solid #ddd; padding: 8px;">0</td>
+                </tr>
+                <tr>
+                    <td style="border: 1px solid #ddd; padding: 8px;">5</td>
+                    <td style="border: 1px solid #ddd; padding: 8px;">1,728</td>
+                </tr>
+                <tr>
+                    <td style="border: 1px solid #ddd; padding: 8px;">6</td>
+                    <td style="border: 1px solid #ddd; padding: 8px;">6,637,920</td>
+                </tr>
+                <tr>
+                    <td style="border: 1px solid #ddd; padding: 8px;">7</td>
+                    <td style="border: 1px solid #ddd; padding: 8px;">165,575,218,320</td>
+                </tr>
+                <tr>
+                    <td style="border: 1px solid #ddd; padding: 8px;">8</td>
+                    <td style="border: 1px solid #ddd; padding: 8px;">19,591,828,170,979,904</td>
+                </tr>
+            </tbody>
+        </table>
     </div>
 </body>
 </html>
