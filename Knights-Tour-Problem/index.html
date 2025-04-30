@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Knight's Tour Solver</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: #f0f0f0;
+        }
+        h1 {
+            color: #333;
+        }
+        #chessboard {
+            display: grid;
+            grid-template-columns: repeat(8, 50px);
+            grid-template-rows: repeat(8, 50px);
+            border: 2px solid #333;
+        }
+        .square {
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: bold;
+            color: #333;
+        }
+        .light {
+            background-color: #fff;
+        }
+        .dark {
+            background-color: #b58863;
+        }
+        .knight {
+            background-color: #ffeb3b;
+            color: #000;
+            transition: background-color 0.2s ease;
+        }
+        .path {
+            background-color: #90EE90;
+            transition: background-color 0.2s ease;
+        }
+        button {
+            margin-top: 20px;
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <h1>Knight's Tour Solver</h1>
+    <div id="chessboard"></div>
+    <button onclick="solveKnightsTour()">Solve Knight's Tour</button>
+
+    <script>
+        const boardSize = 8;
+        let board = [];
+        let moveCount = 0;
+
+        // Possible knight moves (L-shape)
+        const moves = [
+            [2, 1], [2, -1], [-2, 1], [-2, -1],
+            [1, 2], [1, -2], [-1, 2], [-1, -2]
+        ];
+
+        // Initialize the chessboard
+        function initializeBoard() {
+            const chessboard = document.getElementById('chessboard');
+            chessboard.innerHTML = '';
+            board = Array(boardSize).fill().map(() => Array(boardSize).fill(-1));
+            moveCount = 0;
+
+            for (let row = 0; row < boardSize; row++) {
+                for (let col = 0; col < boardSize; col++) {
+                    const square = document.createElement('div');
+                    square.className = `square ${(row + col) % 2 === 0 ? 'light' : 'dark'}`;
+                    square.id = `square-${row}-${col}`;
+                    chessboard.appendChild(square);
+                }
+            }
+        }
+
+        // Check if the position is valid
+        function isValid(x, y) {
+            return x >= 0 && x < boardSize && y >= 0 && y < boardSize && board[x][y] === -1;
+        }
+
+        // Get the number of possible moves from a position (for Warnsdorff's heuristic)
+        function getDegree(x, y) {
+            let count = 0;
+            for (let i = 0; i < moves.length; i++) {
+                const nextX = x + moves[i][0];
+                const nextY = y + moves[i][1];
+                if (isValid(nextX, nextY)) {
+                    count++;
+                }
+            }
+            return count;
+        }
+
+        // Add delay function for animation
+        function delay(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        // Update the visual board with animation
+        async function updateBoard(x, y, moveNum) {
+            const square = document.getElementById(`square-${x}-${y}`);
+            square.textContent = moveNum >= 0 ? moveNum : '';
+            
+            if (moveNum >= 0) {
+                // Remove knight class from all squares
+                document.querySelectorAll('.knight').forEach(el => {
+                    el.classList.remove('knight');
+                    el.classList.add('path');
+                });
+                
+                // Add knight class to current square
+                square.classList.add('knight');
+                await delay(200); // 0.2 second delay
+            } else {
+                square.classList.remove('knight', 'path');
+            }
+        }
+
+        // Solve the Knight's Tour using backtracking and Warnsdorff's heuristic
+        async function solveKnightsTourUtil(x, y, moveNum) {
+            await updateBoard(x, y, moveNum);
+            board[x][y] = moveNum;
+
+            if (moveNum === boardSize * boardSize - 1) {
+                return true; // Solution found
+            }
+
+            // Get all possible moves and sort by degree (Warnsdorff's heuristic)
+            let nextMoves = [];
+            for (let i = 0; i < moves.length; i++) {
+                const nextX = x + moves[i][0];
+                const nextY = y + moves[i][1];
+                if (isValid(nextX, nextY)) {
+                    const degree = getDegree(nextX, nextY);
+                    nextMoves.push({ x: nextX, y: nextY, degree });
+                }
+            }
+            nextMoves.sort((a, b) => a.degree - b.degree);
+
+            // Try each possible move
+            for (let i = 0; i < nextMoves.length; i++) {
+                const { x: nextX, y: nextY } = nextMoves[i];
+                if (await solveKnightsTourUtil(nextX, nextY, moveNum + 1)) {
+                    return true;
+                }
+            }
+
+            // Backtrack
+            board[x][y] = -1;
+            await updateBoard(x, y, -1);
+            return false;
+        }
+
+        // Main function to solve the Knight's Tour
+        async function solveKnightsTour() {
+            initializeBoard();
+            board[0][0] = 0; // Start at position (0,0)
+            await updateBoard(0, 0, 0);
+
+            const button = document.querySelector('button');
+            button.disabled = true;
+
+            if (await solveKnightsTourUtil(0, 0, 0)) {
+                // Removed alert message for completion
+            } else {
+                alert('No solution exists starting from (0,0).');
+            }
+            
+            button.disabled = false;
+        }
+
+        // Initialize the board on page load
+        window.onload = initializeBoard;
+    </script>
+
+    <div style="max-width: 800px; margin: 40px auto; padding: 20px; background-color: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+        <h2>About the Knight's Tour Problem</h2>
+        <p>The Knight's Tour is a sequence of moves by a knight on a chessboard such that the knight visits every square exactly once. The problem involves finding such a sequence that either returns to the starting position (closed/cyclic tour) or ends on a different square (open tour).</p>
+
+        <h3>Algorithm Complexity</h3>
+        <ul>
+            <li>Time Complexity: O(8^N), where N is the total number of squares</li>
+            <li>Space Complexity: O(N)</li>
+            <li>For a standard 8×8 chessboard, there are approximately 4×10^51 possible paths to explore</li>
+        </ul>
+
+        <h3>Warnsdorff's Heuristic</h3>
+        <p>This implementation uses Warnsdorff's rule (1823), an efficient heuristic that significantly improves the solution speed by:</p>
+        <ol>
+            <li>Always moving to the square that has the fewest available next moves</li>
+            <li>In case of a tie, choosing randomly among the tied positions</li>
+        </ol>
+
+        <h3>Hamiltonian Path/Cycle</h3>
+        <p>The Knight's Tour is a specific instance of a Hamiltonian path problem in graph theory where:</p>
+        <ul>
+            <li>Each square on the chessboard represents a vertex</li>
+            <li>Valid knight moves represent edges between vertices</li>
+            <li>A solution to the Knight's Tour is a Hamiltonian path</li>
+            <li>A closed Knight's Tour is a Hamiltonian cycle</li>
+        </ul>
+
+        <h3>References</h3>
+        <ul style="margin-bottom: 20px;">
+            <li><a href="https://en.wikipedia.org/wiki/Knight%27s_tour" target="_blank">Wikipedia: Knight's Tour</a></li>
+            <li><a href="https://www.chess.com/terms/knights-tour-chess" target="_blank">Chess.com: Knight's Tour</a></li>
+            <li><a href="https://en.wikipedia.org/wiki/Knight%27s_graph" target="_blank">Wikipedia: Knight's Graph</a></li>
+        </ul>
+    </div>
+</body>
+</html>
