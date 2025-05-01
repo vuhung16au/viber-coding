@@ -59,3 +59,8 @@ In the context of the Knight's Tour:
 - A closed Knight's Tour is a Hamiltonian cycle
 
 Finding a Hamiltonian path/cycle in a general graph is NP-complete, but the special structure of the Knight's Tour problem allows for efficient heuristic solutions like Warnsdorff's rule.
+
+## Additional Resources
+
+- **Live Demo**: [https://knights-tour-hazel.vercel.app/](https://knights-tour-hazel.vercel.app/)
+- **Source Code**: [https://github.com/vuhung16au/viber-coding/tree/main/Knights-Tour-Problem](https://github.com/vuhung16au/viber-coding/tree/main/Knights-Tour-Problem)
