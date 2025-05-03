@@ -1,0 +1,16 @@
+# Ignore Python cache files
+__pycache__/
+*.py[cod]
+
+# Ignore environment files
+.env
+.env*
+
+# Ignore data files
+# boundaries/fetched_map_data.json
+
+# Ignore generated images
+# *.png
+
+# Ignore Jupyter Notebook checkpoints
+.ipynb_checkpoints/

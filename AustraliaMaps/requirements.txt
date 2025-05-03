@@ -1,0 +1,9 @@
+geopandas>=0.14.2
+matplotlib>=3.8.2
+requests>=2.31.0
+pandas>=2.2.0
+numpy>=1.26.2
+shapely>=2.0.2
+python-dotenv>=1.0.0
+overpy>=0.6
+osmnx>=1.7.0
