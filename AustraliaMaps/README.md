@@ -6,20 +6,28 @@ This project provides Python scripts to generate and manipulate maps of Australi
 
 1. Clone the repository:
    ```bash
-   git clone <repository-url>
+   git clone https://github.com/vuhung16au/viber-coding/tree/main/
    cd AustraliaMaps
    ```
 
-2. Install the required dependencies:
+2. Create a virtual environment named `.venv`:
+   ```bash
+   python3 -m venv .venv
+   source .venv/bin/activate
+   ```
+
+3. Install the required dependencies:
    ```bash
    pip install -r requirements.txt
    ```
 
-3. Create a `.env` file in the root directory with your Geoapify API key:
+4. Create a `.env` file in the root directory with your Geoapify API key:
    ```
    GEOAPIFY_API_KEY=your_api_key_here
    ```
    You can obtain an API key from [Geoapify](https://myprojects.geoapify.com/projects).
+
+   Note: OpenStreetMap does not require an API key and can be used without one.
 
 ## How to Run
 
