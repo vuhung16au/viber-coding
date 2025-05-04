@@ -4,8 +4,9 @@ import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { ref, remove } from 'firebase/database';
 import { db } from '../firebase/config';
+import { generateSlug } from '../../utils/slug';
 
-export default function QuizCard({ quiz, isOwner = false }) {
+export default function QuizCard({ quiz, isOwner = false, onDuplicate }) {
   const router = useRouter();
   const [isDeleting, setIsDeleting] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
@@ -23,7 +24,8 @@ export default function QuizCard({ quiz, isOwner = false }) {
     : 'Unknown date';
 
   const handleEdit = () => {
-    router.push(`/create-quiz?edit=${quiz.id}`);
+    const slug = generateSlug(quiz.title || quiz.description || 'quiz');
+    router.push(`/en/edit-quiz/${quiz.id}/${slug}`);
   };
 
   const handleDelete = async () => {
@@ -103,7 +105,12 @@ export default function QuizCard({ quiz, isOwner = false }) {
           >
             Edit
           </button>
-          
+          <button
+            onClick={onDuplicate}
+            className="px-3 py-1 text-sm bg-yellow-500 text-white rounded-md hover:bg-yellow-600 transition-colors"
+          >
+            Duplicate
+          </button>
           {showConfirm ? (
             <>
               <button

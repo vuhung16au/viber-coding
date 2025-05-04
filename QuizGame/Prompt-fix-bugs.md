@@ -680,3 +680,17 @@ each question has 4 answers, and one of them is correct.
 Insert the quizzes into DB. 
 
 Use gemini ai to generate the quiz.
+
+
+# Add "start" quiz button to quiz page and QR code 
+
+Current behaviour: When user clicked a quizz, the quiz starts right away. 
+
+What I want is, before starting a quiz
+
+e.g URL
+http://localhost:3000/en/quiz/-OPKUte2jzZTkZzErEUm/4-digits-number-divided-by-a-single-digit-number-2
+
+please add a button "Start" (big button) so that users can wait for their quiz players. 
+
+Also, show a QR code for for the quiz URL so that players can join the quiz by scanning the QR code and open it in their browser. 

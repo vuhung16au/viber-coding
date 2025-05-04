@@ -1,6 +1,23 @@
 import { useState, useEffect, useRef } from 'react';
 import MathJaxRenderer from './MathJaxRenderer';
 
+// Utility to unescape HTML entities (if any)
+function unescapeHtml(s) {
+  if (!s) return '';
+  const doc = typeof window !== 'undefined' ? window.document : null;
+  if (doc) {
+    const textarea = doc.createElement('textarea');
+    textarea.innerHTML = s;
+    return textarea.value;
+  }
+  // fallback for SSR
+  return s.replace(/&amp;/g, '&')
+          .replace(/&lt;/g, '<')
+          .replace(/&gt;/g, '>')
+          .replace(/&quot;/g, '"')
+          .replace(/&#039;/g, "'");
+}
+
 export default function Question({ question, onAnswer, showResult = false, selectedAnswer = null, timeoutInSeconds = 20, onTimeout }) {
   const [selected, setSelected] = useState(null);
   const [timeRemaining, setTimeRemaining] = useState(timeoutInSeconds);
@@ -71,7 +88,7 @@ export default function Question({ question, onAnswer, showResult = false, selec
       )}
       
       <h2 className="text-xl font-bold mb-6 text-gray-900 dark:text-white">
-        <MathJaxRenderer content={question.question} />
+        <MathJaxRenderer content={unescapeHtml(question.question)} />
       </h2>
       
       <div className="space-y-3">
@@ -101,7 +118,7 @@ export default function Question({ question, onAnswer, showResult = false, selec
             >
               <div className="flex items-center">
                 <span className="mr-2 font-medium">{String.fromCharCode(65 + index)}.</span>
-                <span className="flex-1"><MathJaxRenderer content={answerText} /></span>
+                <span className="flex-1"><MathJaxRenderer content={unescapeHtml(answerText)} /></span>
                 
                 {showResult && answer.id === question.correctAnswer && (
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 ml-auto text-green-500" viewBox="0 0 20 20" fill="currentColor">

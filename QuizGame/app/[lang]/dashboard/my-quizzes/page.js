@@ -380,10 +380,10 @@ export default function MyQuizzes() {
                 <QuizCard 
                   key={quiz.id} 
                   quiz={quiz}
-                  showActions={true}
+                  isOwner={true} // Ensure action buttons show
                   onEdit={() => handleEditQuiz(quiz.id)}
                   onDelete={() => handleDeleteQuiz(quiz.id)}
-                  onDuplicate={() => handleDuplicateQuiz(quiz.id)} // Add onDuplicate handler
+                  onDuplicate={() => handleDuplicateQuiz(quiz.id)}
                 />
               ))}
             </div>

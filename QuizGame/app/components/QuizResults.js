@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 
-export default function QuizResults({ quiz, score, totalQuestions, userAnswers, onRetry }) {
+export default function QuizResults({ quiz, questions, score, totalQuestions, userAnswers, onRetry }) {
   const percentage = Math.round((score / totalQuestions) * 100);
   
   // Add keyboard shortcuts for retry
@@ -54,7 +54,8 @@ export default function QuizResults({ quiz, score, totalQuestions, userAnswers, 
           Question Review
         </h3>
         
-        {quiz.questions.map((question, index) => {
+        {(questions || quiz.questions || []).map((question, index) => {
+          if (!question || !question.answers) return null;
           const userAnswerId = userAnswers[index];
           const userAnswer = question.answers.find(a => a.id === userAnswerId);
           const correctAnswer = question.answers.find(a => a.id === question.correctAnswer);

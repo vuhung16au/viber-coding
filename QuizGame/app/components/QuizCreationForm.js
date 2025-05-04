@@ -126,10 +126,10 @@ function SortableQuestionItem({ question, index, onEdit, onRemove, onMoveUp, onM
   );
 }
 
-export default function QuizCreationForm() {
+export default function QuizCreationForm({ editQuizId: propEditQuizId }) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const editQuizId = searchParams ? searchParams.get('edit') : null;
+  const editQuizId = propEditQuizId || (searchParams ? searchParams.get('edit') : null);
   const isEditMode = !!editQuizId;
   const { currentUser } = useAuth();
   const [quizData, setQuizData] = useState({

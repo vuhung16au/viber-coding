@@ -6,6 +6,7 @@ import { database } from '../../../../../firebase/config';
 import { ref, get } from 'firebase/database';
 import Question from '../../../../components/Question';
 import QuizResults from '../../../../components/QuizResults';
+import { QRCodeCanvas } from 'qrcode.react';
 
 export default function QuizPageWithSlug() {
   const router = useRouter();
@@ -22,6 +23,9 @@ export default function QuizPageWithSlug() {
   const [timeTaken, setTimeTaken] = useState(0);
   const [timeRemaining, setTimeRemaining] = useState(null);
   const [timerInterval, setTimerInterval] = useState(null);
+  const [quizStarted, setQuizStarted] = useState(false);
+  const [questionCache, setQuestionCache] = useState({}); // { [index]: questionObj }
+  const [questionLoading, setQuestionLoading] = useState(false);
   
   // Handle question timeout
   const handleQuestionTimeout = () => {
@@ -65,248 +69,99 @@ export default function QuizPageWithSlug() {
     }
   }, [quiz, startTime]);
 
+  // Fetch quiz metadata and question IDs only (not full questions)
   useEffect(() => {
-    // Fetch quiz by id from Realtime Database
-    const fetchQuiz = async () => {
+    const fetchQuizMeta = async () => {
       try {
         if (!id) {
           setError('Quiz ID is missing');
           setLoading(false);
           return;
         }
-        
-        const fetchedQuiz = await getQuizById(id);
-        
-        if (fetchedQuiz) {
-          // Create properly structured questions array
-          const questions = [];
-          
-          // Handle different structures for questions
-          if (fetchedQuiz.questions) {
-            // If questions is an array of strings (question IDs), fetch each question
-            if (Array.isArray(fetchedQuiz.questions)) {
-              // Fetch all questions by their IDs
-              for (const questionId of fetchedQuiz.questions) {
-                // Only process if questionId is a string (reference to a question)
-                if (typeof questionId === 'string') {
-                  const questionRef = ref(database, `questions/${questionId}`);
-                  const questionSnapshot = await get(questionRef);
-                  
-                  if (questionSnapshot.exists()) {
-                    const questionData = questionSnapshot.val();
-                    // Create answers array for this question
-                    let answers = [];
-                    
-                    // If the question has answer references, fetch each answer
-                    if (Array.isArray(questionData.answers)) {
-                      for (const answerId of questionData.answers) {
-                        const answerRef = ref(database, `answers/${answerId}`);
-                        const answerSnapshot = await get(answerRef);
-                        
-                        if (answerSnapshot.exists()) {
-                          const answerData = answerSnapshot.val();
-                          answers.push({
-                            id: answerId,
-                            text: answerData.answer, // Map the answer field to text for display
-                            isCorrect: answerData.isCorrect
-                          });
-                        }
-                      }
-                      
-                      // Find the correct answer ID
-                      const correctAnswer = answers.find(a => a.isCorrect)?.id || '';
-                      
-                      // Add the question with its answers to our questions array
-                      questions.push({
-                        id: questionId,
-                        question: questionData.question,
-                        text: questionData.question,
-                        answers,
-                        correctAnswer
-                      });
-                    }
-                  }
-                } else if (typeof questionId === 'object') {
-                  // Handle case where question data is embedded directly
-                  // This is fallback code for other formats
-                  // ...process embedded question object...
-                }
-              }
-            } 
-            // If questions is an object with question IDs as keys
-            else if (typeof fetchedQuiz.questions === 'object') {
-              for (const questionId of Object.keys(fetchedQuiz.questions)) {
-                // Check if the value is a string (reference to question ID)
-                const questionValue = fetchedQuiz.questions[questionId];
-                
-                if (typeof questionValue === 'string') {
-                  // This is a reference to a question, fetch it
-                  const questionRef = ref(database, `questions/${questionValue}`);
-                  const questionSnapshot = await get(questionRef);
-                  
-                  if (questionSnapshot.exists()) {
-                    const questionData = questionSnapshot.val();
-                    let answers = [];
-                    
-                    // If question has answer references, fetch each answer
-                    if (Array.isArray(questionData.answers)) {
-                      for (const answerId of questionData.answers) {
-                        const answerRef = ref(database, `answers/${answerId}`);
-                        const answerSnapshot = await get(answerRef);
-                        
-                        if (answerSnapshot.exists()) {
-                          const answerData = answerSnapshot.val();
-                          answers.push({
-                            id: answerId,
-                            text: answerData.answer, // Map the answer field to text for display
-                            isCorrect: answerData.isCorrect
-                          });
-                        }
-                      }
-                      
-                      // Find the correct answer ID
-                      const correctAnswer = answers.find(a => a.isCorrect)?.id || '';
-                      
-                      // Add the question with its answers to our questions array
-                      questions.push({
-                        id: questionValue,
-                        question: questionData.question,
-                        text: questionData.question,
-                        answers,
-                        correctAnswer
-                      });
-                    }
-                  }
-                } else {
-                  // Process question data that's embedded directly
-                  const questionData = questionValue;
-                  
-                  // Process question text
-                  const questionText = questionData.question || questionData.text || '';
-                  
-                  // Process answers
-                  let answers = [];
-                  
-                  // Handle different formats of answers
-                  if (questionData.answers) {
-                    if (Array.isArray(questionData.answers)) {
-                      // Fetch each answer individually
-                      for (const answerId of questionData.answers) {
-                        const answerRef = ref(database, `answers/${answerId}`);
-                        const answerSnapshot = await get(answerRef);
-                        
-                        if (answerSnapshot.exists()) {
-                          const answerData = answerSnapshot.val();
-                          answers.push({
-                            id: answerId,
-                            text: answerData.answer,  // Map the answer field to text for display
-                            isCorrect: answerData.isCorrect
-                          });
-                        }
-                      }
-                    } else if (typeof questionData.answers === 'object') {
-                      // Convert object to array
-                      for (const answerId of Object.keys(questionData.answers)) {
-                        const answerData = questionData.answers[answerId];
-                        answers.push({
-                          id: answerId,
-                          text: answerData.answer || answerData.text || '',
-                          isCorrect: answerData.isCorrect || false
-                        });
-                      }
-                    }
-                  } else if (questionData.options) {
-                    // Convert options array to answers format with proper structure
-                    answers = questionData.options.map((option, index) => ({
-                      id: String(index),
-                      text: option,
-                      isCorrect: index === parseInt(questionData.correctAnswer)
-                    }));
-                  } else if (questionData.choices) {
-                    // Handle 'choices' property which contains the A, B, C, D options
-                    // Convert choices to the expected answers format
-                    answers = Object.entries(questionData.choices).map(([key, value]) => ({
-                      id: key,
-                      text: value,
-                      isCorrect: key === questionData.correctAnswer
-                    }));
-                  }
-                  
-                  // If answers is still empty, look for other potential properties
-                  if (answers.length === 0) {
-                    // Check for common letter-based keys: A, B, C, D, etc.
-                    const letterKeys = ['A', 'B', 'C', 'D', 'E', 'F'];
-                    const hasLetterChoices = letterKeys.some(letter => questionData[letter] !== undefined);
-                    
-                    if (hasLetterChoices) {
-                      letterKeys.forEach(letter => {
-                        if (questionData[letter] !== undefined) {
-                          answers.push({
-                            id: letter,
-                            text: questionData[letter],
-                            isCorrect: letter === questionData.correctAnswer
-                          });
-                        }
-                      });
-                    }
-                  }
-                  
-                  // Determine correct answer ID
-                  let correctAnswer = null;
-                  
-                  // First check if the question has a correctAnswer property
-                  if (questionData.correctAnswer !== undefined) {
-                    correctAnswer = String(questionData.correctAnswer);
-                  } else {
-                    // Otherwise, find the correct answer from the isCorrect property
-                    const correctAns = answers.find(a => a.isCorrect);
-                    if (correctAns) {
-                      correctAnswer = correctAns.id;
-                    }
-                  }
-                  
-                  // Add question with its answers to the questions array
-                  questions.push({
-                    id: questionId,
-                    question: questionText,  // Ensure this is set for Question component
-                    text: questionText,      // Ensure this is set for QuizResults component
-                    answers,
-                    correctAnswer
-                  });
-                }
-              }
-            }
+        const quizRef = ref(database, `quizzes/${id}`);
+        const snapshot = await get(quizRef);
+        if (snapshot.exists()) {
+          const quizData = snapshot.val();
+          // Only keep metadata and question IDs
+          let questionIds = [];
+          if (Array.isArray(quizData.questions)) {
+            questionIds = quizData.questions;
+          } else if (quizData.questions && typeof quizData.questions === 'object') {
+            questionIds = Object.values(quizData.questions);
           }
-
-          // Set default timeout for questions if not specified
-          questions.forEach(question => {
-            if (!question.timeout) {
-              question.timeout = fetchedQuiz.defaultTimeout || 20; // Default to 20 seconds
-            }
-          });
-          
-          // Update the quiz with fetched questions
           setQuiz({
-            ...fetchedQuiz,
-            questions,
-            defaultTimeout: fetchedQuiz.defaultTimeout || 20, // Default timeout for all questions
+            ...quizData,
+            questionIds,
+            defaultTimeout: quizData.defaultTimeout || 20,
           });
-          
-          // Initialize userAnswers array with the correct length
-          setUserAnswers(new Array(questions.length).fill(null));
+          setUserAnswers(new Array(questionIds.length).fill(null));
         } else {
           setError('Quiz not found');
         }
-      } catch (error) {
-        console.error('Error fetching quiz:', error);
+      } catch (err) {
         setError('Failed to load quiz');
       } finally {
         setLoading(false);
       }
     };
-    
-    fetchQuiz();
+    fetchQuizMeta();
   }, [id, lang]);
+
+  // Fetch a question and its answers by index (if not already cached)
+  const fetchQuestionByIndex = async (index) => {
+    if (!quiz || !quiz.questionIds || questionCache[index]) return;
+    setQuestionLoading(true);
+    const questionId = quiz.questionIds[index];
+    if (!questionId) {
+      setQuestionLoading(false);
+      return;
+    }
+    const questionRef = ref(database, `questions/${questionId}`);
+    const questionSnapshot = await get(questionRef);
+    if (!questionSnapshot.exists()) {
+      setQuestionLoading(false);
+      return;
+    }
+    const questionData = questionSnapshot.val();
+    let answers = [];
+    if (Array.isArray(questionData.answers)) {
+      for (const answerId of questionData.answers) {
+        const answerRef = ref(database, `answers/${answerId}`);
+        const answerSnapshot = await get(answerRef);
+        if (answerSnapshot.exists()) {
+          const answerData = answerSnapshot.val();
+          answers.push({
+            id: answerId,
+            text: answerData.answer,
+            isCorrect: answerData.isCorrect,
+          });
+        }
+      }
+    }
+    const correctAnswer = answers.find(a => a.isCorrect)?.id || '';
+    const questionObj = {
+      id: questionId,
+      question: questionData.question,
+      text: questionData.question,
+      answers,
+      correctAnswer,
+      timeout: questionData.timeout || quiz.defaultTimeout || 20,
+    };
+    setQuestionCache(prev => ({ ...prev, [index]: questionObj }));
+    setQuestionLoading(false);
+  };
+
+  // Fetch current question on index/quiz change
+  useEffect(() => {
+    if (quiz && quiz.questionIds && quiz.questionIds.length > 0) {
+      fetchQuestionByIndex(currentQuestionIndex);
+      // Optionally prefetch next question for smoothness
+      if (currentQuestionIndex + 1 < quiz.questionIds.length) {
+        fetchQuestionByIndex(currentQuestionIndex + 1);
+      }
+    }
+    // eslint-disable-next-line
+  }, [quiz, currentQuestionIndex]);
 
   // Handle keyboard shortcuts
   useEffect(() => {
@@ -314,63 +169,54 @@ export default function QuizPageWithSlug() {
     if (quiz && !showResults && !loading) {
       const handleKeyDown = (e) => {
         // Prevent default browser behavior for these keys
-        if (['a', 'b', 'c', 'd', 'n', 'p', 'Enter'].includes(e.key.toLowerCase())) {
+        if (["a", "b", "c", "d", "n", "p", "Enter"].includes(e.key.toLowerCase())) {
           e.preventDefault();
         }
-
-        const currentQuestion = quiz.questions[currentQuestionIndex];
-        
+        // Use questionCache for currentQuestion
+        const currentQuestion = questionCache[currentQuestionIndex];
+        if (!currentQuestion || !Array.isArray(currentQuestion.answers)) return;
         // Handle A, B, C, D keys to select answers
-        if (e.key.toLowerCase() === 'a' && currentQuestion.answers[0]) {
+        if (e.key.toLowerCase() === "a" && currentQuestion.answers[0]) {
           handleAnswer(currentQuestion.answers[0].id);
-        } else if (e.key.toLowerCase() === 'b' && currentQuestion.answers[1]) {
+        } else if (e.key.toLowerCase() === "b" && currentQuestion.answers[1]) {
           handleAnswer(currentQuestion.answers[1].id);
-        } else if (e.key.toLowerCase() === 'c' && currentQuestion.answers[2]) {
+        } else if (e.key.toLowerCase() === "c" && currentQuestion.answers[2]) {
           handleAnswer(currentQuestion.answers[2].id);
-        } else if (e.key.toLowerCase() === 'd' && currentQuestion.answers[3]) {
+        } else if (e.key.toLowerCase() === "d" && currentQuestion.answers[3]) {
           handleAnswer(currentQuestion.answers[3].id);
         }
-        
         // Handle N key for next question or submit
-        else if (e.key.toLowerCase() === 'n') {
+        else if (e.key.toLowerCase() === "n") {
           const currentAnswer = userAnswers[currentQuestionIndex];
-          if (currentAnswer) { // Only proceed if an answer is selected
-            if (currentQuestionIndex < quiz.questions.length - 1) {
+          if (currentAnswer) {
+            if (currentQuestionIndex < quiz.questionIds.length - 1) {
               nextQuestion();
             } else {
               submitQuiz();
             }
           }
         }
-        
         // Handle P key for previous question
-        else if (e.key.toLowerCase() === 'p') {
+        else if (e.key.toLowerCase() === "p") {
           if (currentQuestionIndex > 0) {
             prevQuestion();
           }
         }
-        
         // Handle Enter key to submit current answer and move to next question
-        else if (e.key === 'Enter') {
-          // If it's the last question, submit the quiz
-          if (currentQuestionIndex === quiz.questions.length - 1) {
+        else if (e.key === "Enter") {
+          if (currentQuestionIndex === quiz.questionIds.length - 1) {
             submitQuiz();
           } else {
-            // Otherwise move to the next question
             nextQuestion();
           }
         }
       };
-      
-      // Add keyboard event listener
-      window.addEventListener('keydown', handleKeyDown);
-      
-      // Cleanup
+      window.addEventListener("keydown", handleKeyDown);
       return () => {
-        window.removeEventListener('keydown', handleKeyDown);
+        window.removeEventListener("keydown", handleKeyDown);
       };
     }
-  }, [quiz, currentQuestionIndex, userAnswers, showResults, loading]);
+  }, [quiz, questionCache, currentQuestionIndex, userAnswers, showResults, loading]);
 
   // Handle user answer
   const handleAnswer = (answerId) => {
@@ -422,15 +268,15 @@ export default function QuizPageWithSlug() {
 
   // Retry quiz
   const retryQuiz = () => {
-    if (!quiz || !quiz.questions) return;
-    
-    // Reset the quiz state for a new attempt
+    if (!quiz || !quiz.questionIds) return;
     setCurrentQuestionIndex(0);
-    setUserAnswers(new Array(quiz.questions.length).fill(null));
+    setUserAnswers(new Array(quiz.questionIds.length).fill(null));
     setShowResults(false);
     setStartTime(new Date());
     setEndTime(null);
     setTimeTaken(0);
+    setQuestionCache({}); // Clear cached questions for a fresh retry
+    setQuestionLoading(false);
   };
 
   // Calculate score - updated to handle timeouts
@@ -484,7 +330,7 @@ export default function QuizPageWithSlug() {
   }
 
   // If quiz is null after loading is complete and there's no error, display a generic error
-  if (!quiz || !quiz.questions) {
+  if (!quiz || !quiz.questionIds) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen p-4">
         <h1 className="text-4xl font-bold mb-6 text-red-600 dark:text-red-500">Error</h1>
@@ -514,8 +360,33 @@ export default function QuizPageWithSlug() {
     );
   }
 
-  const currentQuestion = quiz.questions[currentQuestionIndex];
-  const isLastQuestion = currentQuestionIndex === quiz.questions.length - 1;
+  // Quiz URL for QR code
+  const quizUrl = typeof window !== 'undefined' ? window.location.href : '';
+
+  // Show QR code and Start button before quiz starts
+  if (!quizStarted) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen p-4">
+        <h1 className="text-3xl font-bold mb-6 text-gray-900 dark:text-white text-center">{quiz.title}</h1>
+        <p className="mb-4 text-gray-600 dark:text-gray-400 text-center">Share this QR code so players can join the quiz on their device:</p>
+        <div className="mb-8 bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg flex flex-col items-center">
+          {quizUrl && (
+            <QRCodeCanvas value={quizUrl} size={200} />
+          )}
+          <p className="mt-4 text-xs text-gray-500 break-all text-center">{quizUrl}</p>
+        </div>
+        <button
+          onClick={() => setQuizStarted(true)}
+          className="mt-4 px-10 py-6 text-2xl font-bold bg-blue-600 text-white rounded-lg shadow-lg hover:bg-blue-700 transition-colors"
+        >
+          Start
+        </button>
+      </div>
+    );
+  }
+
+  const currentQuestion = questionCache[currentQuestionIndex];
+  const isLastQuestion = currentQuestionIndex === quiz.questionIds.length - 1;
   const currentAnswer = userAnswers[currentQuestionIndex];
   const allQuestionsAnswered = userAnswers.every(answer => answer !== null);
 
@@ -523,25 +394,31 @@ export default function QuizPageWithSlug() {
     <div className="flex flex-col min-h-screen p-4">
       <header className="mb-6 text-center">
         <h1 className="text-3xl font-bold mb-2 text-gray-900 dark:text-white">{quiz.title}</h1>
-        <p className="text-gray-600 dark:text-gray-400">Question {currentQuestionIndex + 1} of {quiz.questions.length}</p>
+        <p className="text-gray-600 dark:text-gray-400">Question {currentQuestionIndex + 1} of {quiz.questionIds.length}</p>
       </header>
 
       {/* Add a question progress bar */}
       <div className="w-full bg-gray-200 dark:bg-gray-700 h-2 rounded-full mb-6">
         <div 
           className="bg-blue-600 dark:bg-blue-500 h-2 rounded-full transition-all duration-300"
-          style={{width: `${((currentQuestionIndex + 1) / quiz.questions.length) * 100}%`}}
+          style={{width: `${((currentQuestionIndex + 1) / quiz.questionIds.length) * 100}%`}}
         ></div>
       </div>
 
       <div className="flex-grow mb-4">
-        <Question 
-          question={currentQuestion} 
-          onAnswer={handleAnswer} 
-          selectedAnswer={currentAnswer}
-          timeoutInSeconds={currentQuestion.timeout || quiz.defaultTimeout || 20}
-          onTimeout={handleQuestionTimeout}
-        />
+        {questionLoading || !currentQuestion ? (
+          <div className="flex justify-center items-center h-40">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+          </div>
+        ) : (
+          <Question 
+            question={currentQuestion} 
+            onAnswer={handleAnswer} 
+            selectedAnswer={currentAnswer}
+            timeoutInSeconds={currentQuestion.timeout || quiz.defaultTimeout || 20}
+            onTimeout={handleQuestionTimeout}
+          />
+        )}
       </div>
 
       {/* Redesigned navigation controls - more accessible and better placed */}
@@ -549,7 +426,7 @@ export default function QuizPageWithSlug() {
         <div className="flex justify-between items-center">
           {/* Question indicator circles */}
           <div className="hidden md:flex items-center space-x-1 flex-1">
-            {quiz.questions.map((_, index) => (
+            {quiz.questionIds.map((_, index) => (
               <div 
                 key={index} 
                 className={`w-2 h-2 rounded-full ${
@@ -618,7 +495,7 @@ export default function QuizPageWithSlug() {
           
           {/* Question count indicator */}
           <div className="hidden md:block text-sm text-gray-600 dark:text-gray-400 flex-1 text-right">
-            {currentQuestionIndex + 1} / {quiz.questions.length}
+            {currentQuestionIndex + 1} / {quiz.questionIds.length}
           </div>
         </div>
       </div>
