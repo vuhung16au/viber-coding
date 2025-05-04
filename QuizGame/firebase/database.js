@@ -412,3 +412,5 @@ export const migrateQuizTimeouts = async () => {
     };
   }
 };
+
+export { migrateQuizTimeouts };
