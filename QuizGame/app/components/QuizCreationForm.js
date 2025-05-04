@@ -135,6 +135,7 @@ export default function QuizCreationForm({ editQuizId: propEditQuizId }) {
   const [quizData, setQuizData] = useState({
     title: '',
     description: '',
+    prompt: '', // Add prompt field
     coverImage: '/images/default-quiz.jpg', // Default placeholder image
     category: '',
     categoryId: '', 
@@ -149,6 +150,9 @@ export default function QuizCreationForm({ editQuizId: propEditQuizId }) {
   const [useAI, setUseAI] = useState(false);
   const [isGeneratingWithAI, setIsGeneratingWithAI] = useState(false);
   const [aiGenerationError, setAiGenerationError] = useState('');
+  // New: State for AI title/desc generation
+  const [useAITitleDesc, setUseAITitleDesc] = useState(false);
+  const [isGeneratingTitleDesc, setIsGeneratingTitleDesc] = useState(false);
 
   const [currentTag, setCurrentTag] = useState('');
   const [currentQuestion, setCurrentQuestion] = useState({
@@ -187,11 +191,14 @@ export default function QuizCreationForm({ editQuizId: propEditQuizId }) {
           const editData = {
             title: quizToEdit.title || '',
             description: quizToEdit.description || '',
+            prompt: quizToEdit.prompt || '', // Load prompt if present
             coverImage: quizToEdit.coverImage || '/images/default-quiz.jpg',
             category: quizToEdit.category || '',
             categoryId: quizToEdit.categoryId || '',
             tags: quizToEdit.tags || '',
             isFeatured: quizToEdit.isFeatured || false,
+            isPublic: quizToEdit.isPublic || false,
+            defaultTimeout: quizToEdit.defaultTimeout || 20,
             questions: []
           };
 
@@ -476,6 +483,7 @@ export default function QuizCreationForm({ editQuizId: propEditQuizId }) {
     await set(newQuizRef, {
       title: quizData.title,
       description: quizData.description,
+      prompt: quizData.prompt || '', // Save prompt
       coverImage: quizData.coverImage,
       category: category, // For backward compatibility
       categoryId: quizData.categoryId || null, // Store the category ID
@@ -548,6 +556,7 @@ export default function QuizCreationForm({ editQuizId: propEditQuizId }) {
     await update(quizRef, {
       title: quizData.title,
       description: quizData.description,
+      prompt: quizData.prompt || '', // Save prompt
       coverImage: quizData.coverImage,
       category: category,
       categoryId: quizData.categoryId || null,
@@ -566,16 +575,19 @@ export default function QuizCreationForm({ editQuizId: propEditQuizId }) {
   // Handle AI quiz generation
   const handleGenerateWithAI = async () => {
     try {
-      if (quizData.description.trim() === '') {
-        setAiGenerationError('Please enter a quiz description before generating with AI');
+      if (quizData.prompt.trim() === '') {
+        setAiGenerationError('Please enter a prompt before generating with AI');
         return;
       }
 
       setIsGeneratingWithAI(true);
       setAiGenerationError('');
 
+      // Escape backslashes in the prompt for JSON safety (AI generation only)
+      const safePrompt = quizData.prompt.replace(/\\/g, '\\\\');
+
       // Use the server action to generate questions
-      const result = await generateQuiz(quizData.description, 10);
+      const result = await generateQuiz(safePrompt, 10);
       
       if (!result.success) {
         throw new Error(result.error);
@@ -634,6 +646,33 @@ export default function QuizCreationForm({ editQuizId: propEditQuizId }) {
       }
     } finally {
       setIsGeneratingWithAI(false);
+    }
+  };
+
+  // New: AI generate title/desc from prompt
+  const handleGenerateTitleDescWithAI = async () => {
+    if (!quizData.prompt.trim()) {
+      setAiGenerationError('Please enter a prompt to generate title and description.');
+      return;
+    }
+    setIsGeneratingTitleDesc(true);
+    setAiGenerationError('');
+    try {
+      // Use the same generateQuiz action, but only get the title/desc from the result
+      const safePrompt = quizData.prompt.replace(/\\/g, '\\\\');
+      // Request only 1 question, but expect title/desc in result
+      const result = await generateQuiz(safePrompt, 1, { onlyTitleDesc: true });
+      if (!result.success) throw new Error(result.error);
+      // Assume result.data.title and result.data.description are returned
+      setQuizData(qd => ({
+        ...qd,
+        title: result.data.title || '',
+        description: result.data.description || ''
+      }));
+    } catch (error) {
+      setAiGenerationError(error.message || 'Failed to generate title/description');
+    } finally {
+      setIsGeneratingTitleDesc(false);
     }
   };
 
@@ -792,7 +831,51 @@ export default function QuizCreationForm({ editQuizId: propEditQuizId }) {
           <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-white">
             {isEditMode ? 'Edit Quiz' : 'Quiz Details'}
           </h2>
-          
+          {/* Prompt field, only visible to owner (logged-in user) */}
+          {currentUser && (
+            <div className="mb-4">
+              <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">
+                Prompt
+              </label>
+              <textarea
+                name="prompt"
+                value={quizData.prompt}
+                onChange={handleQuizChange}
+                placeholder="Enter a prompt for AI quiz generation"
+                className="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                rows="2"
+              />
+              <p className="text-xs text-gray-500 mt-1">This prompt will be used to generate quiz questions with AI. Only visible to you.</p>
+            </div>
+          )}
+
+          {/* New: AI Title/Desc Checkbox */}
+          <div className="mb-4 flex items-center">
+            <input
+              type="checkbox"
+              id="use-ai-title-desc"
+              checked={useAITitleDesc}
+              onChange={e => {
+                setUseAITitleDesc(e.target.checked);
+                if (!e.target.checked) setAiGenerationError('');
+              }}
+              className="w-4 h-4 mr-2 text-blue-600 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 dark:bg-gray-700 dark:border-gray-600"
+            />
+            <label htmlFor="use-ai-title-desc" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              Use AI to generate Title and Description
+            </label>
+            {useAITitleDesc && (
+              <button
+                type="button"
+                onClick={handleGenerateTitleDescWithAI}
+                disabled={isGeneratingTitleDesc || !quizData.prompt.trim()}
+                className={`ml-4 px-3 py-1 rounded bg-blue-600 text-white text-sm ${isGeneratingTitleDesc || !quizData.prompt.trim() ? 'opacity-50 cursor-not-allowed' : 'hover:bg-blue-700'}`}
+              >
+                {isGeneratingTitleDesc ? 'Generating...' : 'Generate'}
+              </button>
+            )}
+          </div>
+
           <div className="mb-4">
             <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">
               Title
@@ -805,9 +888,9 @@ export default function QuizCreationForm({ editQuizId: propEditQuizId }) {
               placeholder="Enter quiz title"
               className="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white"
               required
+              disabled={useAITitleDesc}
             />
           </div>
-          
           <div className="mb-4">
             <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">
               Description
@@ -820,6 +903,7 @@ export default function QuizCreationForm({ editQuizId: propEditQuizId }) {
               className="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white"
               rows="3"
               required
+              disabled={useAITitleDesc}
             />
           </div>
           

@@ -694,3 +694,46 @@ http://localhost:3000/en/quiz/-OPKUte2jzZTkZzErEUm/4-digits-number-divided-by-a-
 please add a button "Start" (big button) so that users can wait for their quiz players. 
 
 Also, show a QR code for for the quiz URL so that players can join the quiz by scanning the QR code and open it in their browser. 
+
+# Fix my quizzes buttons 
+
+On http://localhost:3000/en/dashboard/my-quizzes
+
+the buttons/features "Edit/delete/duplicate" for my quizzes have been implemented. 
+
+however, the buttons are not showing now. 
+
+there are some bugs, please investigate the code and show the buttons
+
+# Prompt field 
+
+(For logged on users only) 
+
+on create quiz and edit quiz pages
+
+https://quiz-gotitright.vercel.app/en/create-quiz
+https://quiz-gotitright.vercel.app/en/edit-quiz/-OPP8P8a2nLw9i26uenF/aus-nsw-year-12-maths
+
+
+Current fields: 
+- Title
+- Description
+
+Please add a new field 
+- Prompt
+
+The "Prompt" field:
+- Only visible to its owner when creating a new quiz or editting an existing quiz 
+- "Prompt" field is used to generate quiz when users click the button "Create Quiz with AI" (instead of reading "Description" field to generate quiz)
+- "Prompt" field is a text area
+
+# use AI to generate quiz title and description
+
+http://localhost:3000/en/create-quiz
+
+Current behaviour: 
+Users enter "Title" and "Description" manually. 
+
+Change to: 
+- Add an option (checkbox) "Use AI to generate Title and Description". If users tick this checkbox, then 
+- Use Gemini AI to generate quiz's "title" and quiz's "description" based on the "Prompt" field users provided. 

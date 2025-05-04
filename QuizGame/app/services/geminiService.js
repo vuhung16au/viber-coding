@@ -112,6 +112,41 @@ export const generateQuizWithAI = async (description, numQuestions = 10) => {
 };
 
 /**
+ * Generates a quiz title and description using Gemini AI based on a prompt
+ * @param {string} prompt - The prompt or description for the quiz
+ * @returns {Promise<{title: string, description: string}>}
+ */
+export const generateQuizTitleAndDescriptionWithAI = async (prompt) => {
+  const modelOptions = [
+    MODEL_OPTIONS.PRIMARY,
+    MODEL_OPTIONS.SECONDARY,
+    MODEL_OPTIONS.FALLBACK
+  ];
+  let lastError = null;
+  // Gemini prompt for title/desc
+  const aiPrompt = `Given the following quiz prompt, generate a quiz title (max 20 words) and a quiz description (max 100 words). Respond in strict JSON format as follows:\n{\n  \"title\": \"...\",\n  \"description\": \"...\"\n}\nPrompt: ${prompt}`;
+  for (const modelName of modelOptions) {
+    try {
+      const model = genAI.getGenerativeModel({ model: modelName });
+      const result = await model.generateContent(aiPrompt);
+      const response = await result.response;
+      const text = response.text();
+      // Try to extract JSON from the response
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) throw new Error("Could not extract valid JSON for title/description");
+      const obj = JSON.parse(jsonMatch[0]);
+      if (!obj.title || !obj.description) throw new Error("Missing title or description in AI response");
+      return { title: obj.title.trim(), description: obj.description.trim() };
+    } catch (error) {
+      console.error(`Error generating title/desc with model ${modelName}:`, error);
+      lastError = error;
+      if (!error.message?.includes("quota") && !error.message?.includes("429")) break;
+    }
+  }
+  throw new Error(formatErrorMessage(lastError));
+};
+
+/**
  * Simple function to check if the API is responsive
  * Can be used to test API connectivity before attempting generation
  */
