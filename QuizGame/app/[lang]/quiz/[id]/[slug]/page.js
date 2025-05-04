@@ -280,22 +280,22 @@ export default function QuizPageWithSlug() {
     setQuestionLoading(false);
   };
 
-  // Calculate score - updated to handle timeouts
+  // Helper: get array of loaded questions in order
+  const loadedQuestions = quiz && Array.isArray(quiz.questionIds)
+    ? quiz.questionIds.map((_, idx) => questionCache[idx] || null)
+    : [];
+
+  // Calculate score - updated to handle timeouts and use loadedQuestions
   const calculateScore = () => {
-    if (!quiz || !quiz.questions) return 0;
-    
+    if (!loadedQuestions.length) return 0;
     let correctAnswers = 0;
-    
-    for (let i = 0; i < quiz.questions.length; i++) {
-      const question = quiz.questions[i];
+    for (let i = 0; i < loadedQuestions.length; i++) {
+      const question = loadedQuestions[i];
       const userAnswer = userAnswers[i];
-      
-      // Check if user's answer matches the correct answer ID and is not a timeout
-      if (userAnswer && userAnswer !== 'timed-out' && userAnswer === question.correctAnswer) {
+      if (question && userAnswer && userAnswer !== 'timed-out' && userAnswer === question.correctAnswer) {
         correctAnswers++;
       }
     }
-    
     return correctAnswers;
   };
 
@@ -351,8 +351,9 @@ export default function QuizPageWithSlug() {
       <div className="flex flex-col min-h-screen p-4">
         <QuizResults 
           quiz={quiz}
+          questions={loadedQuestions}
           score={calculateScore()} 
-          totalQuestions={quiz.questions.length}
+          totalQuestions={quiz.questionIds.length}
           userAnswers={userAnswers}
           onRetry={retryQuiz}
           timeTaken={timeTaken}
