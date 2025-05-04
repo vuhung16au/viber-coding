@@ -1091,7 +1091,7 @@ export default function QuizCreationForm({ editQuizId: propEditQuizId }) {
                 value={quizData.defaultTimeout}
                 onChange={handleQuizChange}
                 min="5"
-                max="120"
+                max="12000"
                 className="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white"
               />
               <p className="text-xs text-gray-500 mt-1">
