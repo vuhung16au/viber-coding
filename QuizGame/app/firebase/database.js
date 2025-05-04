@@ -1,3 +1,6 @@
+// DEPRECATED: Use '../../firebase/database.js' instead. This file is no longer maintained.
+// All logic has been moved to /firebase/database.js
+
 // Firebase Database Functions
 import { 
   ref, 
