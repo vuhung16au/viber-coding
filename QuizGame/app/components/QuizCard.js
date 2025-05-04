@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { ref, remove } from 'firebase/database';
 import { db } from '../firebase/config';
 import { generateSlug } from '../../utils/slug';
+import MathJaxRenderer from './MathJaxRenderer';
 
 export default function QuizCard({ quiz, isOwner = false, onDuplicate }) {
   const router = useRouter();
@@ -81,10 +82,10 @@ export default function QuizCard({ quiz, isOwner = false, onDuplicate }) {
         </div>
         <div className="p-4">
           <h3 className="font-bold text-xl text-gray-900 dark:text-white truncate">
-            {quiz.title || 'Untitled Quiz'}
+            <MathJaxRenderer content={quiz.title || 'Untitled Quiz'} />
           </h3>
           <p className="text-gray-600 dark:text-gray-300 text-sm mt-2 line-clamp-2 h-10">
-            {quiz.description || 'No description provided'}
+            <MathJaxRenderer content={quiz.description || 'No description provided'} />
           </p>
           <div className="mt-4 flex justify-between items-center">
             <div className="text-sm text-gray-500 dark:text-gray-400">

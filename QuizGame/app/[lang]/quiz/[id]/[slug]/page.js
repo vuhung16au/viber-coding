@@ -7,6 +7,7 @@ import { ref, get } from 'firebase/database';
 import Question from '../../../../components/Question';
 import QuizResults from '../../../../components/QuizResults';
 import { QRCodeCanvas } from 'qrcode.react';
+import MathJaxRenderer from '../../../../components/MathJaxRenderer';
 
 export default function QuizPageWithSlug() {
   const router = useRouter();
@@ -367,7 +368,9 @@ export default function QuizPageWithSlug() {
   if (!quizStarted) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen p-4">
-        <h1 className="text-3xl font-bold mb-6 text-gray-900 dark:text-white text-center">{quiz.title}</h1>
+        <h1 className="text-3xl font-bold mb-6 text-gray-900 dark:text-white text-center">
+          <MathJaxRenderer content={quiz.title} />
+        </h1>
         <p className="mb-4 text-gray-600 dark:text-gray-400 text-center">Share this QR code so players can join the quiz on their device:</p>
         <div className="mb-8 bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg flex flex-col items-center">
           {quizUrl && (
@@ -393,7 +396,9 @@ export default function QuizPageWithSlug() {
   return (
     <div className="flex flex-col min-h-screen p-4">
       <header className="mb-6 text-center">
-        <h1 className="text-3xl font-bold mb-2 text-gray-900 dark:text-white">{quiz.title}</h1>
+        <h1 className="text-3xl font-bold mb-2 text-gray-900 dark:text-white">
+          <MathJaxRenderer content={quiz.title} />
+        </h1>
         <p className="text-gray-600 dark:text-gray-400">Question {currentQuestionIndex + 1} of {quiz.questionIds.length}</p>
       </header>
 
