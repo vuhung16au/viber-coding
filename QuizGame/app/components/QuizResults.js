@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import MathJaxRenderer from './MathJaxRenderer';
 
 export default function QuizResults({ quiz, questions, score, totalQuestions, userAnswers, onRetry }) {
   const percentage = Math.round((score / totalQuestions) * 100);
@@ -72,7 +73,7 @@ export default function QuizResults({ quiz, questions, score, totalQuestions, us
             >
               <div className="flex items-start mb-2">
                 <span className="font-medium mr-2">{index + 1}.</span>
-                <span className="flex-1">{question.question}</span>
+                <span className="flex-1"><MathJaxRenderer content={question.question} /></span>
                 {isCorrect ? (
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-green-600 dark:text-green-400" viewBox="0 0 20 20" fill="currentColor">
                     <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
@@ -89,13 +90,13 @@ export default function QuizResults({ quiz, questions, score, totalQuestions, us
                   isCorrect ? 'text-green-700 dark:text-green-400' : 'text-gray-800 dark:text-gray-300'
                 }`}>
                   <span className="font-medium">Your answer: </span>
-                  {userAnswer ? (userAnswer.text || userAnswer.answer) : 'Not answered'}
+                  {userAnswer ? <MathJaxRenderer content={userAnswer.text || userAnswer.answer} /> : 'Not answered'}
                 </div>
                 
                 {!isCorrect && (
                   <div className="text-green-700 dark:text-green-400">
                     <span className="font-medium">Correct answer: </span>
-                    {correctAnswer ? (correctAnswer.text || correctAnswer.answer) : 'N/A'}
+                    {correctAnswer ? <MathJaxRenderer content={correctAnswer.text || correctAnswer.answer} /> : 'N/A'}
                   </div>
                 )}
               </div>
