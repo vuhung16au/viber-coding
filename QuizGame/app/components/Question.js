@@ -88,7 +88,7 @@ export default function Question({ question, onAnswer, showResult = false, selec
       )}
       
       <h2 className="text-xl font-bold mb-6 text-gray-900 dark:text-white">
-        <MathJaxRenderer content={unescapeHtml(question.question)} />
+        <MathJaxRenderer key={question.id} content={unescapeHtml(question.question)} />
       </h2>
       
       <div className="space-y-3">
@@ -118,7 +118,7 @@ export default function Question({ question, onAnswer, showResult = false, selec
             >
               <div className="flex items-center">
                 <span className="mr-2 font-medium">{String.fromCharCode(65 + index)}.</span>
-                <span className="flex-1"><MathJaxRenderer content={unescapeHtml(answerText)} /></span>
+                <span className="flex-1"><MathJaxRenderer key={answer.id} content={unescapeHtml(answerText)} /></span>
                 
                 {showResult && answer.id === question.correctAnswer && (
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 ml-auto text-green-500" viewBox="0 0 20 20" fill="currentColor">
