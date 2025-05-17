@@ -1155,16 +1155,16 @@ export default function QuizCreationForm({ editQuizId: propEditQuizId }) {
               <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">
                 Question Text
               </label>
-              <input
-                type="text"
+              <textarea
                 name="question"
                 value={currentQuestion.question}
                 onChange={handleQuestionChange}
                 placeholder="Enter your question"
-                className="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                className="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white resize-y min-h-[60px]"
+                rows={3}
               />
             </div>
-            
+
             <div className="mb-4">
               <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">
                 Options
@@ -1174,14 +1174,14 @@ export default function QuizCreationForm({ editQuizId: propEditQuizId }) {
                   <div className="w-8 h-8 flex items-center justify-center bg-gray-200 dark:bg-gray-700 rounded-full mr-2">
                     {String.fromCharCode(65 + index)}
                   </div>
-                  <input
-                    type="text"
+                  <textarea
                     value={option}
                     onChange={(e) => handleOptionChange(index, e.target.value)}
                     placeholder={`Option ${String.fromCharCode(65 + index)}`}
-                    className="flex-grow p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                    className="flex-grow p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white resize-y min-h-[40px]"
+                    rows={2}
                   />
-                  <div className="ml-2">
+                  <div className="ml-2 flex items-center">
                     <input
                       type="radio"
                       name="correctAnswer"
