@@ -167,6 +167,7 @@ export default function QuizCreationForm({ editQuizId: propEditQuizId }) {
   const [categories, setCategories] = useState([]); 
   const [loadingCategories, setLoadingCategories] = useState(true);
   const [loadingQuiz, setLoadingQuiz] = useState(isEditMode);
+  const [editingQuestionIndex, setEditingQuestionIndex] = useState(null);
 
   // Fetch quiz data if in edit mode
   useEffect(() => {
@@ -400,26 +401,40 @@ export default function QuizCreationForm({ editQuizId: propEditQuizId }) {
     });
   };
 
-  // Handle image upload
-  const handleImageUpload = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      // Validate file size (max 5MB)
-      if (file.size > 5 * 1024 * 1024) {
-        setErrorMessage('Image file is too large. Maximum size is 5MB.');
-        return;
-      }
-      
-      // Validate file type
-      if (!file.type.startsWith('image/')) {
-        setErrorMessage('File must be an image.');
-        return;
-      }
-      
-      setSelectedFile(file);
-      const imageUrl = URL.createObjectURL(file);
-      setImagePreview(imageUrl);
+  // Update: handle edit/save/cancel for in-place editing
+  const handleEditQuestion = (index) => {
+    setEditingQuestionIndex(index);
+    setCurrentQuestion({ ...quizData.questions[index], options: [...quizData.questions[index].options] });
+  };
+
+  const handleSaveEditedQuestion = () => {
+    // Validate question
+    if (currentQuestion.question.trim() === '') {
+      setErrorMessage('Question text cannot be empty');
+      return;
     }
+    if (currentQuestion.options.some(option => option.trim() === '')) {
+      setErrorMessage('All options must be filled in');
+      return;
+    }
+    if (!currentQuestion.correctAnswer) {
+      setErrorMessage('Please select a correct answer');
+      return;
+    }
+    // Update the question in the array
+    const updatedQuestions = quizData.questions.map((q, idx) =>
+      idx === editingQuestionIndex ? { ...currentQuestion, id: q.id } : q
+    );
+    setQuizData({ ...quizData, questions: updatedQuestions });
+    setEditingQuestionIndex(null);
+    setCurrentQuestion({ question: '', options: ['', '', '', ''], correctAnswer: '' });
+    setErrorMessage('');
+  };
+
+  const handleCancelEdit = () => {
+    setEditingQuestionIndex(null);
+    setCurrentQuestion({ question: '', options: ['', '', '', ''], correctAnswer: '' });
+    setErrorMessage('');
   };
 
   // Create a new quiz in Firebase Realtime Database
@@ -1124,23 +1139,67 @@ export default function QuizCreationForm({ editQuizId: propEditQuizId }) {
                   strategy={verticalListSortingStrategy}
                 >
                   {quizData.questions.map((question, index) => (
-                    <SortableQuestionItem
-                      key={question.id.toString()}
-                      question={question}
-                      index={index}
-                      onEdit={(editedQuestion) => {
-                        setCurrentQuestion({
-                          ...editedQuestion,
-                          options: [...editedQuestion.options]
-                        });
-                        handleRemoveQuestion(editedQuestion.id);
-                      }}
-                      onRemove={handleRemoveQuestion}
-                      onMoveUp={handleMoveQuestionUp}
-                      onMoveDown={handleMoveQuestionDown}
-                      isFirst={index === 0}
-                      isLast={index === quizData.questions.length - 1}
-                    />
+                    editingQuestionIndex === index ? (
+                      <div key={question.id} className="p-5 border rounded-lg dark:border-gray-700 bg-yellow-50 dark:bg-yellow-900 mb-4">
+                        <h3 className="text-lg font-medium mb-4 text-gray-800 dark:text-gray-200">Edit Question</h3>
+                        <div className="mb-4">
+                          <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">Question Text</label>
+                          <textarea
+                            name="question"
+                            value={currentQuestion.question}
+                            onChange={handleQuestionChange}
+                            placeholder="Enter your question"
+                            className="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white resize-y min-h-[60px]"
+                            rows={3}
+                          />
+                        </div>
+                        <div className="mb-4">
+                          <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">Options</label>
+                          {currentQuestion.options.map((option, optIdx) => (
+                            <div key={optIdx} className="flex items-center mb-2">
+                              <div className="w-8 h-8 flex items-center justify-center bg-gray-200 dark:bg-gray-700 rounded-full mr-2">
+                                {String.fromCharCode(65 + optIdx)}
+                              </div>
+                              <textarea
+                                value={option}
+                                onChange={e => handleOptionChange(optIdx, e.target.value)}
+                                placeholder={`Option ${String.fromCharCode(65 + optIdx)}`}
+                                className="flex-grow p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white resize-y min-h-[40px]"
+                                rows={2}
+                              />
+                              <div className="ml-2 flex items-center">
+                                <input
+                                  type="radio"
+                                  name="correctAnswer"
+                                  value={option}
+                                  checked={currentQuestion.correctAnswer === option}
+                                  onChange={handleQuestionChange}
+                                  className="w-4 h-4 text-blue-600 dark:text-blue-500"
+                                  disabled={!option}
+                                />
+                                <span className="ml-1 text-sm text-gray-600 dark:text-gray-400">Correct</span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                        <div className="flex gap-2">
+                          <button type="button" onClick={handleSaveEditedQuestion} className="flex-1 p-2 bg-green-600 text-white rounded-md hover:bg-green-700">Save</button>
+                          <button type="button" onClick={handleCancelEdit} className="flex-1 p-2 bg-gray-400 text-white rounded-md hover:bg-gray-500">Cancel</button>
+                        </div>
+                      </div>
+                    ) : (
+                      <SortableQuestionItem
+                        key={question.id.toString()}
+                        question={question}
+                        index={index}
+                        onEdit={() => handleEditQuestion(index)}
+                        onRemove={handleRemoveQuestion}
+                        onMoveUp={handleMoveQuestionUp}
+                        onMoveDown={handleMoveQuestionDown}
+                        isFirst={index === 0}
+                        isLast={index === quizData.questions.length - 1}
+                      />
+                    )
                   ))}
                 </SortableContext>
               </DndContext>
@@ -1148,63 +1207,65 @@ export default function QuizCreationForm({ editQuizId: propEditQuizId }) {
           )}
           
           {/* Add New Question Form */}
-          <div className="p-5 border rounded-lg dark:border-gray-700">
-            <h3 className="text-lg font-medium mb-4 text-gray-800 dark:text-gray-200">Add New Question</h3>
-            
-            <div className="mb-4">
-              <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">
-                Question Text
-              </label>
-              <textarea
-                name="question"
-                value={currentQuestion.question}
-                onChange={handleQuestionChange}
-                placeholder="Enter your question"
-                className="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white resize-y min-h-[60px]"
-                rows={3}
-              />
-            </div>
+          {editingQuestionIndex === null && (
+            <div className="p-5 border rounded-lg dark:border-gray-700">
+              <h3 className="text-lg font-medium mb-4 text-gray-800 dark:text-gray-200">Add New Question</h3>
+              
+              <div className="mb-4">
+                <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">
+                  Question Text
+                </label>
+                <textarea
+                  name="question"
+                  value={currentQuestion.question}
+                  onChange={handleQuestionChange}
+                  placeholder="Enter your question"
+                  className="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white resize-y min-h-[60px]"
+                  rows={3}
+                />
+              </div>
 
-            <div className="mb-4">
-              <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">
-                Options
-              </label>
-              {currentQuestion.options.map((option, index) => (
-                <div key={index} className="flex items-center mb-2">
-                  <div className="w-8 h-8 flex items-center justify-center bg-gray-200 dark:bg-gray-700 rounded-full mr-2">
-                    {String.fromCharCode(65 + index)}
-                  </div>
-                  <textarea
-                    value={option}
-                    onChange={(e) => handleOptionChange(index, e.target.value)}
-                    placeholder={`Option ${String.fromCharCode(65 + index)}`}
-                    className="flex-grow p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white resize-y min-h-[40px]"
-                    rows={2}
-                  />
-                  <div className="ml-2 flex items-center">
-                    <input
-                      type="radio"
-                      name="correctAnswer"
+              <div className="mb-4">
+                <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">
+                  Options
+                </label>
+                {currentQuestion.options.map((option, index) => (
+                  <div key={index} className="flex items-center mb-2">
+                    <div className="w-8 h-8 flex items-center justify-center bg-gray-200 dark:bg-gray-700 rounded-full mr-2">
+                      {String.fromCharCode(65 + index)}
+                    </div>
+                    <textarea
                       value={option}
-                      checked={currentQuestion.correctAnswer === option}
-                      onChange={handleQuestionChange}
-                      className="w-4 h-4 text-blue-600 dark:text-blue-500"
-                      disabled={!option}
+                      onChange={(e) => handleOptionChange(index, e.target.value)}
+                      placeholder={`Option ${String.fromCharCode(65 + index)}`}
+                      className="flex-grow p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white resize-y min-h-[40px]"
+                      rows={2}
                     />
-                    <span className="ml-1 text-sm text-gray-600 dark:text-gray-400">Correct</span>
+                    <div className="ml-2 flex items-center">
+                      <input
+                        type="radio"
+                        name="correctAnswer"
+                        value={option}
+                        checked={currentQuestion.correctAnswer === option}
+                        onChange={handleQuestionChange}
+                        className="w-4 h-4 text-blue-600 dark:text-blue-500"
+                        disabled={!option}
+                      />
+                      <span className="ml-1 text-sm text-gray-600 dark:text-gray-400">Correct</span>
+                    </div>
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
+              
+              <button
+                type="button"
+                onClick={handleAddQuestion}
+                className="w-full p-2 bg-green-600 text-white rounded-md hover:bg-green-700"
+              >
+                Add Question
+              </button>
             </div>
-            
-            <button
-              type="button"
-              onClick={handleAddQuestion}
-              className="w-full p-2 bg-green-600 text-white rounded-md hover:bg-green-700"
-            >
-              Add Question
-            </button>
-          </div>
+          )}
         </div>
         
         {/* Submit Button */}
