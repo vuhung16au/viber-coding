@@ -10,7 +10,7 @@ Visit the live demo: [Quiz Game Demo](https://quiz-gotitright.vercel.app/en)
 
 ## GitHub Repository
 
-[https://github.com/username/quiz-game](https://github.com/vuhung16au/viber-coding/tree/main/QuizGame)
+[https://github.com/vuhung16au/viber-coding/tree/main/QuizGame](https://github.com/vuhung16au/viber-coding/tree/main/QuizGame)
 
 ## Technology Stack
 
@@ -32,6 +32,7 @@ Visit the live demo: [Quiz Game Demo](https://quiz-gotitright.vercel.app/en)
 ### Installation
 
 1. Clone the repository:
+(It is `viber` :D)
    ```bash
    git clone https://github.com/vuhung16au/viber-coding/
    cd QuizGame
