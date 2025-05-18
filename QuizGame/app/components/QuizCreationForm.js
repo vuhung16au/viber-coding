@@ -158,7 +158,8 @@ export default function QuizCreationForm({ editQuizId: propEditQuizId }) {
   const [currentQuestion, setCurrentQuestion] = useState({
     question: '',
     options: ['', '', '', ''],
-    correctAnswer: ''
+    correctAnswer: '',
+    prompt: ''
   });
   const [imagePreview, setImagePreview] = useState(null);
   const [errorMessage, setErrorMessage] = useState('');
@@ -387,7 +388,8 @@ export default function QuizCreationForm({ editQuizId: propEditQuizId }) {
     setCurrentQuestion({
       question: '',
       options: ['', '', '', ''],
-      correctAnswer: ''
+      correctAnswer: '',
+      prompt: ''
     });
 
     setErrorMessage('');
@@ -587,7 +589,48 @@ export default function QuizCreationForm({ editQuizId: propEditQuizId }) {
     return quizId;
   };
 
-  // Handle AI quiz generation
+  // Handle AI single question generation
+  const handleGenerateQuestionWithAI = async () => {
+    try {
+      if (!currentQuestion.prompt || currentQuestion.prompt.trim() === '') {
+        setAiGenerationError('Please enter a prompt before generating a question with AI');
+        return;
+      }
+
+      setIsGeneratingWithAI(true);
+      setAiGenerationError('');
+
+      // Escape backslashes in the prompt for JSON safety (AI generation only)
+      const safePrompt = currentQuestion.prompt.replace(/\\/g, '\\\\');
+
+      // Use the server action to generate a single question
+      const result = await generateQuiz(safePrompt, 1);
+      
+      if (!result.success) {
+        throw new Error(result.error);
+      }
+      
+      if (result.data && result.data.length > 0) {
+        const generatedQuestion = result.data[0];
+        
+        // Update current question with the AI generated content
+        setCurrentQuestion({
+          ...currentQuestion,
+          question: generatedQuestion.question,
+          options: generatedQuestion.options,
+          correctAnswer: generatedQuestion.correctAnswer
+        });
+      } else {
+        throw new Error('No questions were generated');
+      }
+    } catch (error) {
+      setAiGenerationError(error.message || 'Failed to generate question with AI');
+    } finally {
+      setIsGeneratingWithAI(false);
+    }
+  };
+
+  // Handle AI quiz generation (generates multiple questions)
   const handleGenerateWithAI = async () => {
     try {
       if (quizData.prompt.trim() === '') {
@@ -616,7 +659,7 @@ export default function QuizCreationForm({ editQuizId: propEditQuizId }) {
         correctAnswer: q.correctAnswer
       }));
 
-      // Update quiz data with generated title if not already provided
+      // Update quiz data with the new questions from AI
       let updatedQuizData = { ...quizData };
       if (!quizData.title.trim()) {
         // Create a title based on the description
@@ -846,21 +889,21 @@ export default function QuizCreationForm({ editQuizId: propEditQuizId }) {
           <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-white">
             {isEditMode ? 'Edit Quiz' : 'Quiz Details'}
           </h2>
-          {/* Prompt field, only visible to owner (logged-in user) */}
+          {/* Prompt field for quiz-level AI generation, only visible to owner (logged-in user) */}
           {currentUser && (
             <div className="mb-4">
               <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">
-                Prompt
+                Quiz Prompt
               </label>
               <textarea
                 name="prompt"
                 value={quizData.prompt}
                 onChange={handleQuizChange}
-                placeholder="Enter a prompt for AI quiz generation"
+                placeholder="Enter a prompt for generating an entire quiz with AI"
                 className="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                 rows="2"
               />
-              <p className="text-xs text-gray-500 mt-1">This prompt will be used to generate quiz questions with AI. Only visible to you.</p>
+              <p className="text-xs text-gray-500 mt-1">This prompt will be used to generate quiz title/description or questions with AI. Only visible to you.</p>
             </div>
           )}
 
@@ -922,7 +965,7 @@ export default function QuizCreationForm({ editQuizId: propEditQuizId }) {
             />
           </div>
           
-          {/* AI Generation Section */}
+          {/* AI Generation Section for whole quiz */}
           <div className="mb-6 p-4 border border-blue-200 rounded-md bg-blue-50 dark:bg-blue-900/20 dark:border-blue-800">
             <div className="mb-2">
               <label className="flex items-center text-sm font-medium text-gray-700 dark:text-gray-300">
@@ -932,7 +975,7 @@ export default function QuizCreationForm({ editQuizId: propEditQuizId }) {
                   onChange={() => setUseAI(!useAI)}
                   className="w-4 h-4 mr-2 text-blue-600 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 dark:bg-gray-700 dark:border-gray-600"
                 />
-                Use AI to create quizzes
+                Use AI to create entire quiz
               </label>
               <p className="text-xs text-gray-500 mt-1 ml-6 dark:text-gray-400">
                 Let AI generate quiz questions based on your description. Enter a description above first.
@@ -942,7 +985,11 @@ export default function QuizCreationForm({ editQuizId: propEditQuizId }) {
             {useAI && (
               <button
                 type="button"
-                onClick={handleGenerateWithAI}
+                onClick={() => {
+                  // Use the description as prompt for generating the entire quiz
+                  setQuizData(current => ({ ...current, prompt: current.description }));
+                  setTimeout(handleGenerateWithAI, 0);
+                }}
                 disabled={isGeneratingWithAI || quizData.description.trim() === ''}
                 className={`w-full py-2 mt-2 ${
                   isGeneratingWithAI || quizData.description.trim() === ''
@@ -1149,8 +1196,8 @@ export default function QuizCreationForm({ editQuizId: propEditQuizId }) {
                             value={currentQuestion.question}
                             onChange={handleQuestionChange}
                             placeholder="Enter your question"
-                            className="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white resize-y min-h-[60px]"
-                            rows={3}
+                            className="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white resize-y min-h-[100px]"
+                            rows={4}
                           />
                         </div>
                         <div className="mb-4">
@@ -1164,8 +1211,8 @@ export default function QuizCreationForm({ editQuizId: propEditQuizId }) {
                                 value={option}
                                 onChange={e => handleOptionChange(optIdx, e.target.value)}
                                 placeholder={`Option ${String.fromCharCode(65 + optIdx)}`}
-                                className="flex-grow p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white resize-y min-h-[40px]"
-                                rows={2}
+                                className="flex-grow p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white resize-y min-h-[80px]"
+                                rows={3}
                               />
                               <div className="ml-2 flex items-center">
                                 <input
@@ -1211,6 +1258,54 @@ export default function QuizCreationForm({ editQuizId: propEditQuizId }) {
             <div className="p-5 border rounded-lg dark:border-gray-700">
               <h3 className="text-lg font-medium mb-4 text-gray-800 dark:text-gray-200">Add New Question</h3>
               
+
+              
+              {/* Prompt field for per-question AI generation */}
+              <div className="mb-4">
+                <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">
+                  Prompt
+                </label>
+                <div className="flex">
+                  <textarea
+                    name="questionPrompt"
+                    value={currentQuestion.prompt || ''}
+                    onChange={(e) => setCurrentQuestion({
+                      ...currentQuestion,
+                      prompt: e.target.value
+                    })}
+                    placeholder="Enter a prompt to generate a question with AI"
+                    className="flex-grow p-2 border rounded-l-md dark:bg-gray-700 dark:border-gray-600 dark:text-white resize-y min-h-[100px]"
+                    rows={4}
+                  />
+                  <button
+                    type="button"
+                    onClick={handleGenerateQuestionWithAI}
+                    disabled={isGeneratingWithAI || !(currentQuestion.prompt || '').trim()}
+                    className={`px-4 border border-l-0 rounded-r-md ${
+                      isGeneratingWithAI || !(currentQuestion.prompt || '').trim()
+                        ? 'bg-blue-300 cursor-not-allowed text-white border-blue-300'
+                        : 'bg-blue-600 hover:bg-blue-700 text-white border-blue-600 hover:border-blue-700'
+                    } transition-colors flex items-center justify-center`}
+                  >
+                    {isGeneratingWithAI ? (
+                      <>
+                        <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        <span className="whitespace-nowrap">Generating...</span>
+                      </>
+                    ) : (
+                      <span className="whitespace-nowrap">Generate question</span>
+                    )}
+                  </button>
+                </div>
+                <p className="text-xs text-gray-500 mt-1">Enter a prompt to generate a single quiz question with AI.</p>
+                {aiGenerationError && (
+                  <p className="text-xs text-red-500 mt-1">{aiGenerationError}</p>
+                )}
+              </div>
+
               <div className="mb-4">
                 <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">
                   Question Text
@@ -1220,8 +1315,8 @@ export default function QuizCreationForm({ editQuizId: propEditQuizId }) {
                   value={currentQuestion.question}
                   onChange={handleQuestionChange}
                   placeholder="Enter your question"
-                  className="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white resize-y min-h-[60px]"
-                  rows={3}
+                  className="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white resize-y min-h-[100px]"
+                  rows={4}
                 />
               </div>
 
@@ -1238,8 +1333,8 @@ export default function QuizCreationForm({ editQuizId: propEditQuizId }) {
                       value={option}
                       onChange={(e) => handleOptionChange(index, e.target.value)}
                       placeholder={`Option ${String.fromCharCode(65 + index)}`}
-                      className="flex-grow p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white resize-y min-h-[40px]"
-                      rows={2}
+                      className="flex-grow p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white resize-y min-h-[80px]"
+                      rows={3}
                     />
                     <div className="ml-2 flex items-center">
                       <input
