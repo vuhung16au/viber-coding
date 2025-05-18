@@ -63,7 +63,7 @@
   }
   
   .btn-secondary {
-    @apply bg-secondary text-secondary-foreground hover:bg-secondary/80 rounded-md px-4 py-2 font-medium transition-colors;
+    @apply bg-secondary text-secondary-foreground hover:bg-secondary rounded-md px-4 py-2 font-medium transition-colors;
   }
   
   .form-input {
