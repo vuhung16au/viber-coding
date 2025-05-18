@@ -3,6 +3,9 @@ import MathJaxRenderer from './MathJaxRenderer';
 
 export default function QuizResults({ quiz, questions, score, totalQuestions, userAnswers, onRetry }) {
   const percentage = Math.round((score / totalQuestions) * 100);
+  const [explanations, setExplanations] = useState({});
+  const [loadingExplanations, setLoadingExplanations] = useState({});
+  const [explanationErrors, setExplanationErrors] = useState({});
   
   // Add keyboard shortcuts for retry
   useEffect(() => {
@@ -20,6 +23,73 @@ export default function QuizResults({ quiz, questions, score, totalQuestions, us
       window.removeEventListener('keydown', handleKeyDown);
     };
   }, [onRetry]);
+
+  // Handle getting explanation for a specific question
+  const handleExplain = async (questionIndex, question) => {
+    // If we already have an explanation, just toggle its visibility
+    if (explanations[questionIndex]) {
+      setExplanations(prev => ({
+        ...prev,
+        [questionIndex]: undefined
+      }));
+      return;
+    }
+
+    // Start loading state
+    setLoadingExplanations(prev => ({
+      ...prev,
+      [questionIndex]: true
+    }));
+    
+    try {
+      // Get user answer and correct answer
+      const userAnswerId = userAnswers[questionIndex];
+      const userAnswer = question.answers.find(a => a.id === userAnswerId);
+      const correctAnswer = question.answers.find(a => a.id === question.correctAnswer);
+      
+      // Call the API endpoint to generate an explanation
+      const response = await fetch('/api/quiz/explanation', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          question: question.question,
+          userAnswer: userAnswer ? userAnswer.text || userAnswer.answer : "Not answered",
+          correctAnswer: correctAnswer ? correctAnswer.text || correctAnswer.answer : "N/A"
+        })
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to generate explanation');
+      }
+      
+      const data = await response.json();
+      
+      // Save the explanation
+      setExplanations(prev => ({
+        ...prev,
+        [questionIndex]: data.explanation
+      }));
+      
+      // Clear any previous errors
+      setExplanationErrors(prev => ({
+        ...prev,
+        [questionIndex]: undefined
+      }));
+    } catch (error) {
+      console.error("Error generating explanation:", error);
+      setExplanationErrors(prev => ({
+        ...prev,
+        [questionIndex]: error.message || "Failed to generate explanation. Please try again."
+      }));
+    } finally {
+      // End loading state
+      setLoadingExplanations(prev => ({
+        ...prev,
+        [questionIndex]: false
+      }));
+    }
+  };
 
   let message = '';
   let messageClass = '';
@@ -61,6 +131,7 @@ export default function QuizResults({ quiz, questions, score, totalQuestions, us
           const userAnswer = question.answers.find(a => a.id === userAnswerId);
           const correctAnswer = question.answers.find(a => a.id === question.correctAnswer);
           const isCorrect = userAnswerId === question.correctAnswer;
+          const hasExplanation = explanations[index];
           
           return (
             <div 
@@ -71,18 +142,33 @@ export default function QuizResults({ quiz, questions, score, totalQuestions, us
                   : 'border-red-300 bg-red-50 dark:border-red-800 dark:bg-red-900/20'
               }`}
             >
-              <div className="flex items-start mb-2">
-                <span className="font-medium mr-2">{index + 1}.</span>
-                <span className="flex-1"><MathJaxRenderer content={question.question} /></span>
-                {isCorrect ? (
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-green-600 dark:text-green-400" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                  </svg>
-                ) : (
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-red-600 dark:text-red-400" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                  </svg>
-                )}
+              <div className="flex items-start justify-between mb-2">
+                <div className="flex items-start">
+                  <span className="font-medium mr-2">{index + 1}.</span>
+                  <span className="flex-1"><MathJaxRenderer content={question.question} /></span>
+                </div>
+                <div className="flex items-center">
+                  {isCorrect ? (
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-green-600 dark:text-green-400 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                    </svg>
+                  ) : (
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-red-600 dark:text-red-400 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                    </svg>
+                  )}
+                  <button
+                    onClick={() => handleExplain(index, question)}
+                    disabled={loadingExplanations[index]}
+                    className={`px-2 py-1 text-sm font-medium rounded ${
+                      hasExplanation
+                        ? 'bg-gray-300 dark:bg-gray-600 text-gray-800 dark:text-gray-100'
+                        : 'bg-blue-600 hover:bg-blue-700 text-white'
+                    } transition-colors`}
+                  >
+                    {loadingExplanations[index] ? 'Loading...' : (hasExplanation ? 'Hide Explanation' : 'Explain')}
+                  </button>
+                </div>
               </div>
               
               <div className="ml-6 space-y-1">
@@ -100,6 +186,22 @@ export default function QuizResults({ quiz, questions, score, totalQuestions, us
                   </div>
                 )}
               </div>
+              
+              {/* Explanation section */}
+              {explanationErrors[index] && (
+                <div className="mt-4 p-3 bg-red-100 dark:bg-red-900/20 text-red-700 dark:text-red-400 rounded">
+                  <p className="font-medium">Error: {explanationErrors[index]}</p>
+                </div>
+              )}
+              
+              {explanations[index] && (
+                <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded border border-blue-200 dark:border-blue-800">
+                  <h4 className="font-medium text-blue-800 dark:text-blue-400 mb-2">Explanation:</h4>
+                  <div className="prose dark:prose-invert max-w-none">
+                    <MathJaxRenderer content={explanations[index]} />
+                  </div>
+                </div>
+              )}
             </div>
           );
         })}

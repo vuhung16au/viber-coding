@@ -1,7 +1,7 @@
 // Gemini AI service for quiz generation
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
-// Get the API key from environment variables
+// Get the API key from environment variables - only used server-side
 const API_KEY = process.env.GEMINI_API_KEY;
 
 // Validate the API key exists
@@ -143,6 +143,76 @@ export const generateQuizTitleAndDescriptionWithAI = async (prompt) => {
       if (!error.message?.includes("quota") && !error.message?.includes("429")) break;
     }
   }
+  throw new Error(formatErrorMessage(lastError));
+};
+
+/**
+ * Generates an explanation for a quiz question using Gemini AI
+ * @param {string} question - The question text
+ * @param {string} userAnswer - The user's answer
+ * @param {string} correctAnswer - The correct answer
+ * @returns {Promise<string>} - The explanation text in markdown format
+ */
+export const generateQuizExplanationWithAI = async (question, userAnswer, correctAnswer) => {
+  const modelOptions = [
+    MODEL_OPTIONS.PRIMARY,
+    MODEL_OPTIONS.SECONDARY,
+    MODEL_OPTIONS.FALLBACK
+  ];
+  
+  const prompt = `You are a helpful math tutor for elementary/primary school students. 
+Explain clearly why the correct answer is correct for the following quiz question. 
+If the user's answer is incorrect, briefly mention why it is incorrect.
+
+Your explanation should use simple language and clear mathematical reasoning.
+Use markdown formatting for better readability, including:
+- Use ** for bold text when emphasizing important points
+- Use mathematical notation with proper LaTeX syntax wrapped in $ symbols (e.g., $\\frac{1}{2}$ for inline math or $$\\frac{1}{2}$$ for display math)
+- For LaTeX commands, use single backslash, not double (use $\\frac{1}{2}$ not $\\\\frac{1}{2}$, use $\\times$ not $\\\\times$)
+- Break down the steps of calculations clearly
+- Use paragraph breaks (double line breaks) to separate different parts of your explanation
+
+Important:
+- Your response should be in Markdown format.
+- Your response should be compatible with MathJax.
+- Use simple language and clear mathematical reasoning.
+
+Here is the quiz question and answers:
+Question: ${question}
+User's answer: ${userAnswer}
+Correct answer: ${correctAnswer}
+
+Explanation:`;
+  
+  let lastError = null;
+  
+  for (const modelName of modelOptions) {
+    try {
+      console.log(`Attempting to generate explanation using model: ${modelName}`);
+      
+      // Get the generative model
+      const model = genAI.getGenerativeModel({ model: modelName });
+      
+      // Generate content from the model
+      const result = await model.generateContent(prompt);
+      const response = await result.response;
+      const explanation = response.text();
+      
+      console.log(`Successfully generated explanation using ${modelName}`);
+      return explanation;
+      
+    } catch (error) {
+      console.error(`Error generating explanation with model ${modelName}:`, error);
+      lastError = error;
+      
+      // If this is not a quota error, or if we're on the last model option, don't try again
+      if (!error.message?.includes("quota") && !error.message?.includes("429")) {
+        break;
+      }
+    }
+  }
+  
+  // If we get here, all attempts failed
   throw new Error(formatErrorMessage(lastError));
 };
 

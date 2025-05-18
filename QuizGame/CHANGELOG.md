@@ -2,6 +2,15 @@
 
 All notable changes to the Quiz GetItRight project will be documented in this file.
 
+## [1.0.10] - 2025-05-18
+
+### Added
+- "Explain" feature in quiz results that provides detailed explanations for answers
+- Server-side Gemini AI integration to explain why answers are correct or incorrect
+- Mathematical explanations with MathJax support for proper formula rendering
+- Secure implementation with API key protection (server-side only)
+- Fallback model system that tries multiple Gemini models for reliability
+
 ## [1.0.9] - 2025-04-26
 
 ### Added
