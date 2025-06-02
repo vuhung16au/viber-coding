@@ -29,9 +29,11 @@ const THIRTY_DAYS = 30 * ONE_DAY;
  * @param {number} totalQuestions - The total number of questions in the quiz
  * @param {number} correctAnswers - The number of correctly answered questions
  * @param {number} timeTaken - Time taken to complete the quiz in seconds (optional)
+ * @param {number} totalPoints - Total points earned (optional)
+ * @param {number} totalPossiblePoints - Total possible points (optional)
  * @returns {Promise<string>} - The ID of the newly created result record
  */
-export async function recordQuizPlayed(userId, quizId, score, totalQuestions, correctAnswers = null, timeTaken = null) {
+export async function recordQuizPlayed(userId, quizId, score, totalQuestions, correctAnswers = null, timeTaken = null, totalPoints = null, totalPossiblePoints = null) {
   if (!userId || !quizId) {
     console.error('Required parameters missing for recordQuizPlayed');
     return null;
@@ -64,6 +66,8 @@ export async function recordQuizPlayed(userId, quizId, score, totalQuestions, co
       totalQuestions,
       correctAnswers,
       timeTaken,
+      totalPoints, // Add total points earned
+      totalPossiblePoints, // Add total possible points
       date: serverTimestamp()
     };
     

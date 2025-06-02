@@ -290,9 +290,10 @@ export default function QuizPage({ params }) {
     setShowResults(false);
   };
 
-  // Calculate score
+  // Calculate score (point-based system)
   const calculateScore = () => {
     let correctAnswers = 0;
+    let totalPoints = 0;
     
     for (let i = 0; i < quiz.questions.length; i++) {
       const question = quiz.questions[i];
@@ -301,10 +302,20 @@ export default function QuizPage({ params }) {
       // Check if user's answer matches the correct answer ID
       if (userAnswer && userAnswer === question.correctAnswer) {
         correctAnswers++;
+        // Add question points if answered correctly
+        const questionPoints = question.points || 1; // Default to 1 point if not specified
+        totalPoints += questionPoints;
       }
     }
     
-    return correctAnswers;
+    return { correctAnswers, totalPoints };
+  };
+
+  // Calculate total possible points
+  const calculateTotalPossiblePoints = () => {
+    return quiz.questions.reduce((total, question) => {
+      return total + (question.points || 1);
+    }, 0);
   };
 
   if (loading) {
@@ -331,12 +342,17 @@ export default function QuizPage({ params }) {
   }
 
   if (showResults) {
+    const scoreData = calculateScore();
+    const totalPossiblePoints = calculateTotalPossiblePoints();
+    
     return (
       <div className="flex flex-col min-h-screen p-4">
         <QuizResults 
           quiz={quiz}
-          score={calculateScore()} 
+          score={scoreData.correctAnswers} 
           totalQuestions={quiz.questions.length}
+          totalPoints={scoreData.totalPoints}
+          totalPossiblePoints={totalPossiblePoints}
           userAnswers={userAnswers}
           onRetry={retryQuiz}
         />

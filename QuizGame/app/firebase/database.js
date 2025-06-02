@@ -210,7 +210,9 @@ export const saveQuizResult = async (
   correctAnswers,
   totalQuestions,
   timeTaken = null,
-  dateTaken = null
+  dateTaken = null,
+  totalPoints = null,
+  totalPossiblePoints = null
 ) => {
   if (!quizId || !userId) {
     console.error('Missing required parameters for saving quiz result');
@@ -234,6 +236,8 @@ export const saveQuizResult = async (
       correctAnswers,
       totalQuestions,
       timeTaken: timeTaken || 0,
+      totalPoints: totalPoints || 0,
+      totalPossiblePoints: totalPossiblePoints || 0,
       date: dateTaken ? {
         seconds: Math.floor(dateTaken.getTime() / 1000),
         nanoseconds: (dateTaken.getTime() % 1000) * 1000000

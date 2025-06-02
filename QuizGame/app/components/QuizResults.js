@@ -1,12 +1,60 @@
 import { useState, useEffect } from 'react';
+import { useAuth } from '../firebase/auth';
+import { saveQuizResult } from '../firebase/database';
+import { recordQuizPlayed } from '../firebase/statistics';
 import MathJaxRenderer from './MathJaxRenderer';
 
-export default function QuizResults({ quiz, questions, score, totalQuestions, userAnswers, onRetry }) {
+export default function QuizResults({ quiz, questions, score, totalQuestions, totalPoints, totalPossiblePoints, userAnswers, onRetry }) {
+  const { currentUser } = useAuth();
   const percentage = Math.round((score / totalQuestions) * 100);
+  const pointPercentage = totalPossiblePoints > 0 ? Math.round((totalPoints / totalPossiblePoints) * 100) : 0;
   const [explanations, setExplanations] = useState({});
   const [loadingExplanations, setLoadingExplanations] = useState({});
   const [explanationErrors, setExplanationErrors] = useState({});
+  const [resultSaved, setResultSaved] = useState(false);
   
+  // Save quiz result when component mounts
+  useEffect(() => {
+    const saveResult = async () => {
+      if (!currentUser || !quiz || resultSaved) return;
+      
+      try {
+        // Save the quiz result to database
+        const resultId = await saveQuizResult(
+          quiz.id,
+          currentUser.uid,
+          percentage,
+          score,
+          totalQuestions,
+          null, // timeTaken - could be added later
+          new Date(), // dateTaken
+          totalPoints,
+          totalPossiblePoints
+        );
+        
+        // Also record in statistics
+        if (resultId) {
+          await recordQuizPlayed(
+            currentUser.uid,
+            quiz.id,
+            percentage,
+            totalQuestions,
+            score,
+            null, // timeTaken
+            totalPoints,
+            totalPossiblePoints
+          );
+        }
+        
+        setResultSaved(true);
+      } catch (error) {
+        console.error('Error saving quiz result:', error);
+      }
+    };
+    
+    saveResult();
+  }, [currentUser, quiz, score, totalQuestions, totalPoints, totalPossiblePoints, percentage, resultSaved]);
+
   // Add keyboard shortcuts for retry
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -94,13 +142,16 @@ export default function QuizResults({ quiz, questions, score, totalQuestions, us
   let message = '';
   let messageClass = '';
   
-  if (percentage >= 90) {
+  // Use point percentage for messaging if points are available, otherwise use regular percentage
+  const displayPercentage = (totalPoints !== undefined && totalPossiblePoints !== undefined) ? pointPercentage : percentage;
+  
+  if (displayPercentage >= 90) {
     message = 'Excellent! You\'re a genius!';
     messageClass = 'text-green-600 dark:text-green-400';
-  } else if (percentage >= 70) {
+  } else if (displayPercentage >= 70) {
     message = 'Great job! Well done!';
     messageClass = 'text-green-600 dark:text-green-400';
-  } else if (percentage >= 50) {
+  } else if (displayPercentage >= 50) {
     message = 'Good effort! Keep learning!';
     messageClass = 'text-yellow-600 dark:text-yellow-400';
   } else {
@@ -117,6 +168,11 @@ export default function QuizResults({ quiz, questions, score, totalQuestions, us
       <div className="mb-10 text-center">
         <div className="text-5xl font-bold mb-2">{score} / {totalQuestions}</div>
         <div className="text-2xl font-semibold mb-3">{percentage}%</div>
+        {totalPoints !== undefined && totalPossiblePoints !== undefined && (
+          <div className="text-lg font-medium mb-2 text-blue-600 dark:text-blue-400">
+            Points: {totalPoints} / {totalPossiblePoints} ({pointPercentage}%)
+          </div>
+        )}
         <div className={`text-xl font-medium ${messageClass}`}>{message}</div>
       </div>
       
@@ -132,6 +188,7 @@ export default function QuizResults({ quiz, questions, score, totalQuestions, us
           const correctAnswer = question.answers.find(a => a.id === question.correctAnswer);
           const isCorrect = userAnswerId === question.correctAnswer;
           const hasExplanation = explanations[index];
+          const questionPoints = question.points || 1;
           
           return (
             <div 
@@ -148,6 +205,16 @@ export default function QuizResults({ quiz, questions, score, totalQuestions, us
                   <span className="flex-1"><MathJaxRenderer content={question.question} /></span>
                 </div>
                 <div className="flex items-center">
+                  {/* Point indicator */}
+                  <span className={`text-xs px-2 py-1 rounded-full font-medium mr-2 ${
+                    questionPoints === 2 
+                      ? 'bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300' 
+                      : questionPoints === 0 
+                      ? 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400'
+                      : 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300'
+                  }`}>
+                    {questionPoints === 2 ? '2 pts' : questionPoints === 0 ? '0 pts' : '1 pt'}
+                  </span>
                   {isCorrect ? (
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-green-600 dark:text-green-400 mr-2" viewBox="0 0 20 20" fill="currentColor">
                       <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />

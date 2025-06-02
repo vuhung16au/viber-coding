@@ -54,9 +54,20 @@ function SortableQuestionItem({ question, index, onEdit, onRemove, onMoveUp, onM
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
               </svg>
             </div>
-            <p className="font-medium text-gray-800 dark:text-gray-200">
-              {index + 1}. <MathJaxRenderer content={question.question} />
-            </p>
+            <div className="flex items-center gap-2">
+              <p className="font-medium text-gray-800 dark:text-gray-200">
+                {index + 1}. <MathJaxRenderer content={question.question} />
+              </p>
+              <span className={`text-xs px-2 py-1 rounded-full font-medium ${
+                question.points === 2 
+                  ? 'bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300' 
+                  : question.points === 0 
+                  ? 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400'
+                  : 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300'
+              }`}>
+                {question.points === 2 ? '2 pts' : question.points === 0 ? '0 pts' : '1 pt'}
+              </span>
+            </div>
           </div>
           <ul className="mt-2 space-y-1 ml-7">
             {question.options.map((option, optIndex) => (
@@ -159,7 +170,8 @@ export default function QuizCreationForm({ editQuizId: propEditQuizId }) {
     question: '',
     options: ['', '', '', ''],
     correctAnswer: '',
-    prompt: ''
+    prompt: '',
+    points: 1 // Default to normal point value
   });
   const [imagePreview, setImagePreview] = useState(null);
   const [errorMessage, setErrorMessage] = useState('');
@@ -1229,6 +1241,61 @@ export default function QuizCreationForm({ editQuizId: propEditQuizId }) {
                             </div>
                           ))}
                         </div>
+
+                        {/* Point Type Selection */}
+                        <div className="mb-4">
+                          <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">
+                            Point Value
+                          </label>
+                          <div className="flex space-x-4">
+                            <label className="flex items-center">
+                              <input
+                                type="radio"
+                                name="points"
+                                value={1}
+                                checked={currentQuestion.points === 1}
+                                onChange={(e) => setCurrentQuestion({
+                                  ...currentQuestion,
+                                  points: parseInt(e.target.value)
+                                })}
+                                className="w-4 h-4 text-blue-600 dark:text-blue-500 mr-2"
+                              />
+                              <span className="text-sm text-gray-700 dark:text-gray-300">Normal (1 point)</span>
+                            </label>
+                            <label className="flex items-center">
+                              <input
+                                type="radio"
+                                name="points"
+                                value={2}
+                                checked={currentQuestion.points === 2}
+                                onChange={(e) => setCurrentQuestion({
+                                  ...currentQuestion,
+                                  points: parseInt(e.target.value)
+                                })}
+                                className="w-4 h-4 text-blue-600 dark:text-blue-500 mr-2"
+                              />
+                              <span className="text-sm text-gray-700 dark:text-gray-300">Double (2 points)</span>
+                            </label>
+                            <label className="flex items-center">
+                              <input
+                                type="radio"
+                                name="points"
+                                value={0}
+                                checked={currentQuestion.points === 0}
+                                onChange={(e) => setCurrentQuestion({
+                                  ...currentQuestion,
+                                  points: parseInt(e.target.value)
+                                })}
+                                className="w-4 h-4 text-blue-600 dark:text-blue-500 mr-2"
+                              />
+                              <span className="text-sm text-gray-700 dark:text-gray-300">No points (0)</span>
+                            </label>
+                          </div>
+                          <p className="text-xs text-gray-500 mt-1">
+                            Choose the point value for this question. Points are calculated after quiz completion.
+                          </p>
+                        </div>
+                        
                         <div className="flex gap-2">
                           <button type="button" onClick={handleSaveEditedQuestion} className="flex-1 p-2 bg-green-600 text-white rounded-md hover:bg-green-700">Save</button>
                           <button type="button" onClick={handleCancelEdit} className="flex-1 p-2 bg-gray-400 text-white rounded-md hover:bg-gray-500">Cancel</button>
@@ -1350,6 +1417,60 @@ export default function QuizCreationForm({ editQuizId: propEditQuizId }) {
                     </div>
                   </div>
                 ))}
+              </div>
+
+              {/* Point Type Selection */}
+              <div className="mb-4">
+                <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">
+                  Point Value
+                </label>
+                <div className="flex space-x-4">
+                  <label className="flex items-center">
+                    <input
+                      type="radio"
+                      name="points"
+                      value={1}
+                      checked={currentQuestion.points === 1}
+                      onChange={(e) => setCurrentQuestion({
+                        ...currentQuestion,
+                        points: parseInt(e.target.value)
+                      })}
+                      className="w-4 h-4 text-blue-600 dark:text-blue-500 mr-2"
+                    />
+                    <span className="text-sm text-gray-700 dark:text-gray-300">Normal (1 point)</span>
+                  </label>
+                  <label className="flex items-center">
+                    <input
+                      type="radio"
+                      name="points"
+                      value={2}
+                      checked={currentQuestion.points === 2}
+                      onChange={(e) => setCurrentQuestion({
+                        ...currentQuestion,
+                        points: parseInt(e.target.value)
+                      })}
+                      className="w-4 h-4 text-blue-600 dark:text-blue-500 mr-2"
+                    />
+                    <span className="text-sm text-gray-700 dark:text-gray-300">Double (2 points)</span>
+                  </label>
+                  <label className="flex items-center">
+                    <input
+                      type="radio"
+                      name="points"
+                      value={0}
+                      checked={currentQuestion.points === 0}
+                      onChange={(e) => setCurrentQuestion({
+                        ...currentQuestion,
+                        points: parseInt(e.target.value)
+                      })}
+                      className="w-4 h-4 text-blue-600 dark:text-blue-500 mr-2"
+                    />
+                    <span className="text-sm text-gray-700 dark:text-gray-300">No points (0)</span>
+                  </label>
+                </div>
+                <p className="text-xs text-gray-500 mt-1">
+                  Choose the point value for this question. Points are calculated after quiz completion.
+                </p>
               </div>
               
               <button
