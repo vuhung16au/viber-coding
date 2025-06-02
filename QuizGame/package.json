@@ -17,6 +17,7 @@
     "@dnd-kit/utilities": "^3.2.2",
     "@google/generative-ai": "^0.24.0",
     "autoprefixer": "^10.4.21",
+    "dotenv": "^16.5.0",
     "firebase": "^10.14.1",
     "firebase-admin": "^13.3.0",
     "mathjax": "^3.2.2",

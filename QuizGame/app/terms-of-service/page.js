@@ -9,6 +9,8 @@ import MobileTermsNav from '../components/MobileTermsNav';
 // The client-side component that uses the language context
 function TermsOfServiceContent() {
   const { t } = useLanguage();
+  const [activeSection, setActiveSection] = useState('introduction');
+  
   // Structured data for SEO
   const structuredData = {
     '@context': 'https://schema.org',
@@ -22,6 +24,24 @@ function TermsOfServiceContent() {
       'name': t('terms.title'),
     },
   };
+
+  // Update active section based on URL hash
+  useEffect(() => {
+    const updateActiveSection = () => {
+      const hash = window.location.hash.replace('#', '');
+      if (hash && document.getElementById(hash)) {
+        setActiveSection(hash);
+      }
+    };
+    
+    updateActiveSection();
+    window.addEventListener('hashchange', updateActiveSection);
+    
+    return () => {
+      window.removeEventListener('hashchange', updateActiveSection);
+    };
+  }, []);
+
   return (
     <>
       <SeoHead
@@ -31,7 +51,7 @@ function TermsOfServiceContent() {
         structuredData={structuredData}
       />
       <div className="flex flex-col md:flex-row gap-8">
-        <TermsOfServiceTOC />
+        <TermsOfServiceTOC activeId={activeSection} onNavigate={setActiveSection} />
         <main className="flex-1 min-w-0">
           <MobileTermsNav />
           <div className="max-w-2xl mx-auto py-8 px-2 sm:px-4 lg:px-8 bg-card rounded-lg shadow-md">

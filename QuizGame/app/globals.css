@@ -49,6 +49,16 @@
   }
   body {
     @apply bg-background text-foreground;
+    scroll-behavior: smooth;
+    scroll-padding-top: 6rem; /* Ensure scrolling to anchors accounts for sticky headers */
+  }
+  
+  /* Custom styling for sticky toc */
+  .sticky-toc {
+    transition: all 0.3s ease;
+  }
+  
+  body {
     font-feature-settings: "rlig" 1, "calt" 1;
   }
 }
