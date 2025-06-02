@@ -5,7 +5,10 @@ import fr from './fr';
 import zh from './zh';
 import de from './de';
 
-const translations = {
+// Set which languages are currently active
+const activeLanguages = ['en', 'vi'];
+
+const allTranslations = {
   en,
   vi,
   ja,
@@ -13,6 +16,11 @@ const translations = {
   zh,
   de
 };
+
+// Filter to only include active languages
+const translations = Object.fromEntries(
+  Object.entries(allTranslations).filter(([lang]) => activeLanguages.includes(lang))
+);
 
 // Create a useTranslation hook that can be imported in components
 export function useTranslation(locale = 'en') {
