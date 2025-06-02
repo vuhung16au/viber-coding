@@ -93,7 +93,7 @@ function TermsOfServiceContent() {
             <section id="contact-us" tabIndex={-1} aria-labelledby="contact-us-heading" className="mb-8">
               <h2 id="contact-us-heading" className="text-xl font-semibold mb-2">{t('terms.contactUs')}</h2>
               <p>{t('terms.contactUsText')}</p>
-              <p>Email: <a href="mailto:legal@quizgetitright.com" className="underline text-primary">legal@quizgetitright.com</a></p>
+              <p>Email: <a href="mailto:vuhung16plus+getitright@gmail.com" className="underline text-primary">vuhung16plus+getitright@gmail.com</a></p>
             </section>
           </div>
         </main>

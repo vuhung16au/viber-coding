@@ -82,8 +82,8 @@ export default function ContactContent() {
         <div className="space-y-4 text-gray-700 dark:text-gray-300">
           <p>
             <span className="font-medium">{t?.contact?.emailTitle || "Email"}:</span> {" "}
-            <a href="mailto:support@getitright.quiz" className="text-blue-600 hover:underline dark:text-blue-400">
-              support@getitright.quiz
+            <a href="mailto:vuhung16plus+getitright@gmail.com" className="text-blue-600 hover:underline dark:text-blue-400">
+              vuhung16plus+getitright@gmail.com
             </a>
           </p>
           

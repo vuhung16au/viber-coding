@@ -263,7 +263,7 @@ export default function PrivacyPolicyContent() {
             <div className="prose dark:prose-invert max-w-none">
               <p className="leading-relaxed">
                 {t?.privacyPolicy?.section7?.content || 
-                  "If you have any questions about this Privacy Policy, please contact us at privacy@getitright.quiz."}
+                  "If you have any questions about this Privacy Policy, please contact us at vuhung16plus+getitright@gmail.com."}
               </p>
             </div>
           </section>
