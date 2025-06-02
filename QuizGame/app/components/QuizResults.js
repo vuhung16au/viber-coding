@@ -3,6 +3,7 @@ import { useAuth } from '../firebase/auth';
 import { saveQuizResult } from '../firebase/database';
 import { recordQuizPlayed } from '../firebase/statistics';
 import MathJaxRenderer from './MathJaxRenderer';
+import { exportQuizResultsToPDF } from '../../utils/pdfExport';
 
 export default function QuizResults({ quiz, questions, score, totalQuestions, totalPoints, totalPossiblePoints, userAnswers, onRetry }) {
   const { currentUser } = useAuth();
@@ -12,6 +13,7 @@ export default function QuizResults({ quiz, questions, score, totalQuestions, to
   const [loadingExplanations, setLoadingExplanations] = useState({});
   const [explanationErrors, setExplanationErrors] = useState({});
   const [resultSaved, setResultSaved] = useState(false);
+  const [exportingPDF, setExportingPDF] = useState(false);
   
   // Save quiz result when component mounts
   useEffect(() => {
@@ -274,12 +276,52 @@ export default function QuizResults({ quiz, questions, score, totalQuestions, to
         })}
       </div>
       
-      <div className="mt-8 text-center">
+      <div className="mt-8 flex justify-center space-x-4">
         <button
           onClick={onRetry}
           className="px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors"
         >
           Try Again
+        </button>
+        
+        <button
+          onClick={async () => {
+            setExportingPDF(true);
+            try {
+              await exportQuizResultsToPDF({
+                quiz,
+                questions,
+                score,
+                totalQuestions,
+                userAnswers,
+                explanations
+              });
+            } catch (error) {
+              console.error("Error exporting PDF:", error);
+              alert("Failed to export PDF. Please try again.");
+            } finally {
+              setExportingPDF(false);
+            }
+          }}
+          disabled={exportingPDF}
+          className={`px-6 py-3 ${exportingPDF ? 'bg-gray-400' : 'bg-green-600 hover:bg-green-700'} text-white font-medium rounded-lg transition-colors flex items-center`}
+        >
+          {exportingPDF ? (
+            <>
+              <svg className="animate-spin h-5 w-5 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              Generating PDF...
+            </>
+          ) : (
+            <>
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M6 2a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2V7.414A2 2 0 0015.414 6L12 2.586A2 2 0 0010.586 2H6zm5 6a1 1 0 10-2 0v3.586l-1.293-1.293a1 1 0 10-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 11.586V8z" clipRule="evenodd" />
+              </svg>
+              Export to PDF
+            </>
+          )}
         </button>
       </div>
     </div>
