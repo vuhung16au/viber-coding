@@ -3,8 +3,13 @@
 import Script from 'next/script';
 import { useEffect } from 'react';
 import { logEvent } from 'firebase/analytics';
+import { usePathname, useSearchParams } from 'next/navigation';
 
 export default function GoogleAnalytics() {
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  
+  // Handle route changes with Next.js App Router
   useEffect(() => {
     const handleRouteChange = async (url) => {
       if (typeof window !== 'undefined' && window.gtag) {
@@ -35,17 +40,15 @@ export default function GoogleAnalytics() {
       setupAnalytics();
     };
 
-    // Track initial page load
-    if (typeof window !== 'undefined') {
-      handleRouteChange(window.location.pathname);
-    }
-
-    // Set up listening for route changes
-    document.addEventListener('routeChangeComplete', handleRouteChange);
+    // Get the current URL
+    const url = pathname + (searchParams?.toString() ? `?${searchParams.toString()}` : '');
     
-    return () => {
-      document.removeEventListener('routeChangeComplete', handleRouteChange);
-    };
+    // Track page view on initial load and route changes
+    if (typeof window !== 'undefined') {
+      handleRouteChange(url);
+    }
+    
+    // No need for eventListener in App Router - useEffect with pathname/searchParams handles route changes
   }, []);
 
   return (
