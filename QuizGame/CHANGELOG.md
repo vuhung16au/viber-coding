@@ -2,9 +2,32 @@
 
 All notable changes to the Quiz GetItRight project will be documented in this file.
 
+## [1.0.11] - 2025-06-03
+
+### Added
+
+- PDF export functionality for quiz results with proper formatting
+- PDF export feature for quizzes in edit mode
+- Point system added to quizzes for scoring
+- Refactored quiz creation form into a 3-step process for better usability
+- New documentation including Database Schema, Google Services integration, and codebase walkthrough
+
+### Fixed
+
+- Fixed navigation floating menu in terms-of-service page
+- Various bug fixes and improvements in quiz display
+- MathJax rendering improvements in exported PDFs
+
+### Changed
+
+- Language support temporarily limited to English and Vietnamese
+- Email configurations updated for better delivery
+- Quiz creation form UI/UX improvements
+
 ## [1.0.10] - 2025-05-18
 
 ### Added
+
 - "Explain" feature in quiz results that provides detailed explanations for answers
 - Server-side Gemini AI integration to explain why answers are correct or incorrect
 - Mathematical explanations with MathJax support for proper formula rendering
@@ -13,6 +36,7 @@ All notable changes to the Quiz GetItRight project will be documented in this fi
 ## [1.0.9] - 2025-04-26
 
 ### Added
+
 - Improved question timeout functionality with visual countdown timer
 - Color-coded timer display (green, yellow, red) based on remaining time
 - Enhanced answer handling with clearer visual feedback
@@ -21,6 +45,7 @@ All notable changes to the Quiz GetItRight project will be documented in this fi
 - Proper cleanup of timer intervals to prevent memory leaks
 
 ### Changed
+
 - Optimized question component for better performance and user experience
 - Improved accessibility for quiz answers with proper ARIA attributes
 - Enhanced visual styling for correct/incorrect answers

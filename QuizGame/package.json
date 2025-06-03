@@ -1,6 +1,6 @@
 {
   "name": "quiz-gotitright",
-  "version": "1.0.10",
+  "version": "1.0.11",
   "description": "A Firebase-backed quiz application",
   "private": true,
   "scripts": {
