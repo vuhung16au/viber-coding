@@ -18,7 +18,7 @@
     "@google/generative-ai": "^0.24.0",
     "autoprefixer": "^10.4.21",
     "dotenv": "^16.5.0",
-    "firebase": "^10.14.1",
+    "firebase": "^11.8.1",
     "firebase-admin": "^13.3.0",
     "html2canvas": "^1.4.1",
     "jspdf": "^3.0.1",
