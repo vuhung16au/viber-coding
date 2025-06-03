@@ -28,8 +28,12 @@ export default function QuestionsStep() {
       setIsGeneratingWithAI(true);
       setAiGenerationError('');
 
-      // Use our AI service to generate questions
-      const result = await generateQuestionsWithAI(quizData.prompt);
+      // Use our AI service to generate questions - passing any uploaded images
+      const result = await generateQuestionsWithAI(
+        quizData.prompt, 
+        10, // Default number of questions
+        quizData.promptImages // Pass any uploaded images if they exist
+      );
       
       if (result.success) {
         // Map the generated questions to our quiz format

@@ -20,7 +20,8 @@ export const useQuizForm = (editQuizId = null) => {
     isFeatured: false,
     isPublic: false,
     defaultTimeout: 20,
-    useAI: false
+    useAI: false,
+    promptImages: [] // Array to store the images to be used for AI generation
   });
   
   const [currentTag, setCurrentTag] = useState('');
@@ -30,6 +31,7 @@ export const useQuizForm = (editQuizId = null) => {
   const [selectedFile, setSelectedFile] = useState(null);
   const [loadingQuiz, setLoadingQuiz] = useState(!!editQuizId);
   const [isEditMode] = useState(!!editQuizId);
+  const [uploadingImages, setUploadingImages] = useState(false);
   
   // Fetch quiz data if in edit mode
   useEffect(() => {
@@ -166,6 +168,85 @@ export const useQuizForm = (editQuizId = null) => {
     });
   };
   
+  // Handle prompt image uploads
+  const handlePromptImageUpload = async (files) => {
+    if (!files || files.length === 0) return;
+    
+    setUploadingImages(true);
+    
+    try {
+      const imageFiles = Array.from(files);
+      const validImageTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+      const maxFileSize = 5 * 1024 * 1024; // 5MB max per file
+      const maxFiles = 3; // Maximum 3 images
+      
+      // Validate file type and size
+      const validImages = imageFiles.filter(file => {
+        if (!validImageTypes.includes(file.type)) {
+          setErrorMessage(`File "${file.name}" is not a supported image type. Please use JPEG, PNG, GIF, or WEBP.`);
+          return false;
+        }
+        
+        if (file.size > maxFileSize) {
+          setErrorMessage(`File "${file.name}" exceeds the 5MB size limit.`);
+          return false;
+        }
+        
+        return true;
+      });
+      
+      // Check number of files limit
+      if (validImages.length > maxFiles) {
+        setErrorMessage(`You can upload a maximum of ${maxFiles} images.`);
+        return;
+      }
+      
+      // Process each valid image file
+      const imageDataPromises = validImages.map(async file => {
+        return new Promise((resolve) => {
+          const reader = new FileReader();
+          
+          reader.onload = (e) => {
+            const base64Data = e.target.result.split(',')[1]; // Get only the base64 data part without the prefix
+            resolve({
+              name: file.name,
+              data: base64Data,
+              mimeType: file.type,
+              size: file.size,
+              preview: URL.createObjectURL(file)
+            });
+          };
+          
+          reader.readAsDataURL(file);
+        });
+      });
+      
+      // Wait for all image processing to complete
+      const newImages = await Promise.all(imageDataPromises);
+      
+      // Update quiz data with the new images
+      setQuizData(prevData => ({
+        ...prevData,
+        promptImages: [...newImages]
+      }));
+      
+      setErrorMessage('');
+    } catch (error) {
+      console.error("Error processing image uploads:", error);
+      setErrorMessage('Error processing image uploads: ' + error.message);
+    } finally {
+      setUploadingImages(false);
+    }
+  };
+  
+  // Remove a prompt image
+  const removePromptImage = (indexToRemove) => {
+    setQuizData(prevData => ({
+      ...prevData,
+      promptImages: prevData.promptImages.filter((_, index) => index !== indexToRemove)
+    }));
+  };
+  
   // Validate the quiz data
   const validateQuiz = () => {
     if (quizData.title.trim() === '') {
@@ -198,6 +279,7 @@ export const useQuizForm = (editQuizId = null) => {
     currentTag,
     setCurrentTag,
     errorMessage,
+    uploadingImages,
     setErrorMessage,
     isSubmitting,
     setIsSubmitting,
@@ -216,6 +298,8 @@ export const useQuizForm = (editQuizId = null) => {
     removeQuestion,
     moveQuestion,
     validateQuiz,
+    handlePromptImageUpload,
+    removePromptImage,
     currentUser
   };
 };

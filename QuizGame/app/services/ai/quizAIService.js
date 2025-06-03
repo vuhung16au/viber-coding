@@ -3,7 +3,7 @@
 import { generateQuiz } from '../../actions/quizActions';
 
 // Function to generate a single question with AI
-export const generateQuestionWithAI = async (prompt) => {
+export const generateQuestionWithAI = async (prompt, images = []) => {
   try {
     if (!prompt || prompt.trim() === '') {
       return { success: false, error: 'Please enter a prompt before generating a question with AI' };
@@ -13,7 +13,7 @@ export const generateQuestionWithAI = async (prompt) => {
     const safePrompt = prompt.replace(/\\/g, '\\\\');
 
     // Use the server action to generate a single question
-    const result = await generateQuiz(safePrompt, 1);
+    const result = await generateQuiz(safePrompt, 1, { images });
     
     if (!result.success) {
       throw new Error(result.error);
@@ -36,7 +36,7 @@ export const generateQuestionWithAI = async (prompt) => {
 };
 
 // Function to generate multiple questions with AI
-export const generateQuestionsWithAI = async (prompt, count = 10) => {
+export const generateQuestionsWithAI = async (prompt, count = 10, images = []) => {
   try {
     if (!prompt || prompt.trim() === '') {
       return { success: false, error: 'Please enter a prompt before generating with AI' };
@@ -46,7 +46,7 @@ export const generateQuestionsWithAI = async (prompt, count = 10) => {
     const safePrompt = prompt.replace(/\\/g, '\\\\');
 
     // Use the server action to generate questions
-    const result = await generateQuiz(safePrompt, count);
+    const result = await generateQuiz(safePrompt, count, { images });
     
     if (!result.success) {
       throw new Error(result.error);
@@ -85,7 +85,7 @@ export const generateQuestionsWithAI = async (prompt, count = 10) => {
 };
 
 // Function to generate title and description with AI
-export const generateTitleDescWithAI = async (prompt) => {
+export const generateTitleDescWithAI = async (prompt, images = []) => {
   try {
     if (!prompt || prompt.trim() === '') {
       return { success: false, error: 'Please enter a prompt to generate title and description.' };
@@ -95,7 +95,7 @@ export const generateTitleDescWithAI = async (prompt) => {
     const safePrompt = prompt.replace(/\\/g, '\\\\');
     
     // Request only 1 question, but expect title/desc in result
-    const result = await generateQuiz(safePrompt, 1, { onlyTitleDesc: true });
+    const result = await generateQuiz(safePrompt, 1, { onlyTitleDesc: true, images });
     
     if (!result.success) {
       throw new Error(result.error);

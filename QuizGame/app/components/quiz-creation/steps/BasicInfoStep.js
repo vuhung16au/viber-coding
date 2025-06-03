@@ -25,7 +25,10 @@ export default function BasicInfoStep() {
     useAITitleDesc,
     setUseAITitleDesc,
     isGeneratingTitleDesc,
-    setIsGeneratingTitleDesc
+    setIsGeneratingTitleDesc,
+    uploadingImages,
+    handlePromptImageUpload,
+    removePromptImage
   } = useQuizFormContext();
   
   const { register, control, formState: { errors } } = useForm({
@@ -49,7 +52,11 @@ export default function BasicInfoStep() {
     setIsGeneratingTitleDesc(true);
     setAiGenerationError('');
     
-    const result = await generateTitleDescWithAI(quizData.prompt);
+    // Pass prompt images for multimodal generation
+    const result = await generateTitleDescWithAI(
+      quizData.prompt,
+      quizData.promptImages || []
+    );
     
     if (result.success) {
       updateQuizData({
@@ -87,6 +94,79 @@ export default function BasicInfoStep() {
         </p>
       </div>
       
+      {/* Image Upload Section */}
+      <div className="mb-4 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 rounded-lg">
+        <h4 className="text-sm font-medium text-blue-800 dark:text-blue-300 mb-2">Image Upload</h4>
+        <p className="text-xs text-blue-700 dark:text-blue-400 mb-2">
+          Upload images to help generate your quiz. Images will be used alongside your prompt text for better AI generation.
+        </p>
+
+        {/* Image Upload Controls */}
+        <div className="mb-3">
+          <label 
+            className={`flex justify-center items-center gap-2 p-4 border-2 border-dashed rounded-lg cursor-pointer
+              ${quizData.promptImages.length > 0 
+                ? "border-blue-300 bg-blue-50 dark:border-blue-700 dark:bg-blue-900/20" 
+                : "border-gray-300 bg-gray-50 dark:border-gray-700 dark:bg-gray-900/20"}
+              hover:bg-blue-50 dark:hover:bg-blue-900/20`}
+          >
+            <div className="flex flex-col items-center">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-blue-500 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              <span className="text-sm font-medium text-blue-600 dark:text-blue-400">
+                {uploadingImages ? 'Uploading...' : 'Click to upload or drag and drop'}
+              </span>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                JPG, PNG, GIF or WEBP (MAX. 5MB each, 3 images max)
+              </p>
+              <input
+                type="file"
+                multiple
+                accept="image/jpeg,image/png,image/gif,image/webp"
+                className="hidden"
+                onChange={(e) => handlePromptImageUpload(e.target.files)}
+                disabled={uploadingImages}
+              />
+            </div>
+          </label>
+        </div>
+
+        {/* Image Previews */}
+        {quizData.promptImages.length > 0 && (
+          <div className="mt-4">
+            <h5 className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">Uploaded Images:</h5>
+            <div className="flex flex-wrap gap-2">
+              {quizData.promptImages.map((img, index) => (
+                <div key={index} className="relative group">
+                  <div className="h-20 w-20 overflow-hidden rounded-md border dark:border-gray-600">
+                    <Image
+                      src={img.preview}
+                      alt={`Uploaded image ${index + 1}`}
+                      width={80}
+                      height={80}
+                      className="object-cover w-full h-full"
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => removePromptImage(index)}
+                    className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 shadow-lg hover:bg-red-600 focus:outline-none"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                    </svg>
+                  </button>
+                  <span className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-60 text-white text-xs p-1 truncate">
+                    {img.name}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
       {/* Math Formula Guide */}
       <div className="mb-4 p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-100 dark:border-yellow-800 rounded-lg">
         <h4 className="text-sm font-medium text-yellow-800 dark:text-yellow-300 mb-2">Math Formula Support</h4>

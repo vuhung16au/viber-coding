@@ -43,17 +43,18 @@ const formatErrorMessage = (error) => {
 };
 
 /**
- * Generates quiz questions using Gemini API based on a description
+ * Generates quiz questions using Gemini API based on a description and optional images
  * @param {string} description - The description of the quiz to generate
  * @param {number} numQuestions - The number of questions to generate (default: 10)
+ * @param {Array} images - Optional array of image data for multimodal generation
  * @returns {Promise<Array>} - Array of quiz questions with options and correct answers
  */
-export const generateQuizWithAI = async (description, numQuestions = 10) => {
+export const generateQuizWithAI = async (description, numQuestions = 10, images = []) => {
   // Limit the number of questions to a reasonable amount
   const safeNumQuestions = Math.min(numQuestions, 15);
   
   // Create the prompt for the API
-  const prompt = `Create a quiz about "${description}" with ${safeNumQuestions} multiple-choice questions.
+  const promptText = `Create a quiz about "${description}" with ${safeNumQuestions} multiple-choice questions.
     Format each question as a JSON object with the following structure:
     {
       "question": "Question text",
@@ -63,12 +64,14 @@ export const generateQuizWithAI = async (description, numQuestions = 10) => {
     
     Return the response as a valid JSON array of these question objects. Do not include any explanations or additional text outside the JSON array.`;
 
-  // Try models in priority order
-  const modelOptions = [
-    MODEL_OPTIONS.PRIMARY,     // Try Gemini 2.0 Flash-Lite first
-    MODEL_OPTIONS.SECONDARY,   // Then try Gemini 1.5 Flash-8B
-    MODEL_OPTIONS.FALLBACK     // Finally fall back to Gemini 1.0 Pro
-  ];
+  // Check if we have images - this will change how we handle models and content generation
+  const hasImages = Array.isArray(images) && images.length > 0;
+  
+  // Set model options based on whether we have images or not
+  // If we have images, use only multimodal-capable models (skip text-only models)
+  const modelOptions = hasImages 
+    ? [MODEL_OPTIONS.PRIMARY, MODEL_OPTIONS.SECONDARY] // Only use models that support images
+    : [MODEL_OPTIONS.PRIMARY, MODEL_OPTIONS.SECONDARY, MODEL_OPTIONS.FALLBACK]; // Use all models in order
   
   let lastError = null;
   
@@ -79,8 +82,30 @@ export const generateQuizWithAI = async (description, numQuestions = 10) => {
       // Get the generative model
       const model = genAI.getGenerativeModel({ model: modelName });
       
-      // Generate content from the model
-      const result = await model.generateContent(prompt);
+      // Different handling based on whether we have images
+      let result;
+      
+      if (hasImages) {
+        // Create a multimodal prompt with images and text
+        const prompt = {
+          contents: [
+            {
+              role: "user",
+              parts: [
+                { text: promptText },
+                ...images.map(img => ({ inlineData: { data: img.data, mimeType: img.mimeType } }))
+              ]
+            }
+          ]
+        };
+        
+        // Generate content from the model with images
+        result = await model.generateContent(prompt);
+      } else {
+        // Generate content from the model with text only
+        result = await model.generateContent(promptText);
+      }
+      
       const response = await result.response;
       const text = response.text();
       
@@ -112,25 +137,55 @@ export const generateQuizWithAI = async (description, numQuestions = 10) => {
 };
 
 /**
- * Generates a quiz title and description using Gemini AI based on a prompt
+ * Generates a quiz title and description using Gemini AI based on a prompt and optional images
  * @param {string} prompt - The prompt or description for the quiz
+ * @param {Array} images - Optional array of image data for multimodal generation
  * @returns {Promise<{title: string, description: string}>}
  */
-export const generateQuizTitleAndDescriptionWithAI = async (prompt) => {
-  const modelOptions = [
-    MODEL_OPTIONS.PRIMARY,
-    MODEL_OPTIONS.SECONDARY,
-    MODEL_OPTIONS.FALLBACK
-  ];
+export const generateQuizTitleAndDescriptionWithAI = async (prompt, images = []) => {
+  // Check if we have images - this will change how we handle models and content generation
+  const hasImages = Array.isArray(images) && images.length > 0;
+  
+  // Set model options based on whether we have images or not
+  const modelOptions = hasImages
+    ? [MODEL_OPTIONS.PRIMARY, MODEL_OPTIONS.SECONDARY] // Only use models that support images
+    : [MODEL_OPTIONS.PRIMARY, MODEL_OPTIONS.SECONDARY, MODEL_OPTIONS.FALLBACK]; // Use all models in order
+    
   let lastError = null;
+  
   // Gemini prompt for title/desc
-  const aiPrompt = `Given the following quiz prompt, generate a quiz title (max 20 words) and a quiz description (max 100 words). Respond in strict JSON format as follows:\n{\n  \"title\": \"...\",\n  \"description\": \"...\"\n}\nPrompt: ${prompt}`;
+  const promptText = `Given the following quiz prompt${hasImages ? " and image(s)" : ""}, generate a quiz title (max 20 words) and a quiz description (max 100 words). Respond in strict JSON format as follows:\n{\n  \"title\": \"...\",\n  \"description\": \"...\"\n}\nPrompt: ${prompt}`;
+  
   for (const modelName of modelOptions) {
     try {
       const model = genAI.getGenerativeModel({ model: modelName });
-      const result = await model.generateContent(aiPrompt);
+      
+      let result;
+      
+      if (hasImages) {
+        // Create a multimodal prompt with images and text
+        const multimodalPrompt = {
+          contents: [
+            {
+              role: "user",
+              parts: [
+                { text: promptText },
+                ...images.map(img => ({ inlineData: { data: img.data, mimeType: img.mimeType } }))
+              ]
+            }
+          ]
+        };
+        
+        // Generate content from the model with images
+        result = await model.generateContent(multimodalPrompt);
+      } else {
+        // Generate content from the model with text only
+        result = await model.generateContent(promptText);
+      }
+      
       const response = await result.response;
       const text = response.text();
+      
       // Try to extract JSON from the response
       const jsonMatch = text.match(/\{[\s\S]*\}/);
       if (!jsonMatch) throw new Error("Could not extract valid JSON for title/description");
