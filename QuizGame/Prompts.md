@@ -1,3 +1,16 @@
+# Update `CHANGELOG.md`
+
+Base on the latest changes, update the `CHANGELOG.md` file to reflect the new features, bug fixes, and improvements. Using the existing format, add a new entry for the current version. 
+
+Refer to github commit history for details on the changes made. Ensure that the changelog is clear and concise, providing enough information for users to understand what has changed in this version.
+
+Only apply the changes for the folder `QuizGame`
+
+For info about commit history, you can run `git` command `git log` in the terminal under the `QuizGame` folder.
+
+https://github.com/vuhung16au/viber-coding/tree/main/QuizGame
+https://github.com/vuhung16au/viber-coding
+
 # First batch
 This is a quiz app that allows users to take quizzes on various topics. 
 
