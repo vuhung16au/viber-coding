@@ -21,7 +21,7 @@
     "firebase": "^10.14.1",
     "firebase-admin": "^13.3.0",
     "html2canvas": "^1.4.1",
-    "jspdf": "^3.0.1",
+    "jspdf": "^4.1.0",
     "mathjax": "^3.2.2",
     "mathjax-react": "^2.0.1",
     "next": "^14.2.28",
