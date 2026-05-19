@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server';
-import { checkIfUserIsAdminServer } from '../../../../firebase/admin.js';
 
 /**
  * Server-side API route to check if the current user is an admin
@@ -18,6 +17,7 @@ export async function POST(request) {
     
     // Check if the user is an admin using Firebase Admin SDK
     console.log('[API] Calling checkIfUserIsAdminServer function');
+    const { checkIfUserIsAdminServer } = await import('../../../../firebase/admin.js');
     const isAdmin = await checkIfUserIsAdminServer(userId);
     console.log('[API] Admin check result:', isAdmin);
     

@@ -1,12 +1,8 @@
 import { Inter } from 'next/font/google';
+import { Suspense } from 'react';
 import './globals.css';
 import Script from 'next/script';
-import dynamic from 'next/dynamic';
-
-// Dynamically import the GoogleAnalytics component with no SSR
-const GoogleAnalytics = dynamic(() => import('./components/GoogleAnalytics'), {
-  ssr: false,
-});
+import GoogleAnalytics from './components/GoogleAnalytics';
 
 // Configure the Inter font with display settings to avoid preload warning
 const inter = Inter({
@@ -33,7 +29,9 @@ export default function RootLayout({ children }) {
       </head>
       <body className={inter.className}>
         {children}
-        <GoogleAnalytics />
+        <Suspense fallback={null}>
+          <GoogleAnalytics />
+        </Suspense>
       </body>
       
       {/* Fix font preloading issues by setting appropriate 'as' attribute */}

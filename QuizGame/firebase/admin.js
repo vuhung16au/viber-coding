@@ -15,15 +15,28 @@ const serviceAccount = {
   universe_domain: process.env.FIREBASE_ADMIN_UNIVERSE_DOMAIN,
 };
 
-if (!admin.apps.length) {
-  admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount),
-    databaseURL: process.env.NEXT_PUBLIC_FIREBASE_DATABASE_URL,
-  });
-}
+const hasAdminCredentials = Boolean(
+  serviceAccount.project_id &&
+  serviceAccount.client_email &&
+  serviceAccount.private_key
+);
 
-const adminDb = admin.database();
-const adminAuth = admin.auth();
+let adminDb = null;
+let adminAuth = null;
+
+if (hasAdminCredentials) {
+  if (!admin.apps.length) {
+    admin.initializeApp({
+      credential: admin.credential.cert(serviceAccount),
+      databaseURL: process.env.NEXT_PUBLIC_FIREBASE_DATABASE_URL,
+    });
+  }
+
+  adminDb = admin.database();
+  adminAuth = admin.auth();
+} else {
+  console.warn('Firebase Admin credentials are not configured; admin checks will return false.');
+}
 
 /**
  * Checks if a user is an admin by looking up their custom claims or a dedicated admins node in the database.
@@ -31,6 +44,10 @@ const adminAuth = admin.auth();
  * @returns {Promise<boolean>}
  */
 export async function checkIfUserIsAdminServer(userId) {
+  if (!adminDb) {
+    return false;
+  }
+
   // Option 1: Check a dedicated admins node in the database
   const adminRef = adminDb.ref(`admins/${userId}`);
   const snapshot = await adminRef.get();

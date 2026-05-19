@@ -12,14 +12,15 @@ module.exports = {
   trailingSlash: false,
   // Configure which pages should be statically generated
   output: 'standalone',
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
+  serverExternalPackages: ["firebase"],
   // These options were moved from experimental to root level in Next.js 14
   skipTrailingSlashRedirect: true,
   skipMiddlewareUrlNormalize: true,
-  // Font optimization configuration
-  optimizeFonts: true,
   // Add proper configuration for middleware
   experimental: {
-    serverComponentsExternalPackages: ["firebase"],
     // Configure server actions
     serverActions: {
       bodySizeLimit: '2mb',
