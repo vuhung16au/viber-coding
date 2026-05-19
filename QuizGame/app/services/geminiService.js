@@ -14,9 +14,21 @@ const genAI = new GoogleGenerativeAI(API_KEY || "dummy-key");
 
 // Define model options with fallbacks in priority order
 const MODEL_OPTIONS = {
-  PRIMARY: "gemini-2.0-flash-lite", // 1st priority: Gemini 2.0 Flash-Lite
-  SECONDARY: "gemini-1.5-flash-8b", // 2nd priority: Gemini 1.5 Flash-8B
-  FALLBACK: "gemini-1.0-pro"        // 3rd priority: Original fallback option
+  PRIMARY: "gemini-2.5-flash-lite", // 1st priority: cost-efficient current model
+  SECONDARY: "gemini-2.5-flash", // 2nd priority: current general-purpose flash model
+  FALLBACK: "gemini-2.0-flash-lite" // 3rd priority: older stable fallback
+};
+
+const shouldTryNextModel = (error) => {
+  const message = error?.message?.toLowerCase() || "";
+  return (
+    message.includes("quota") ||
+    message.includes("429") ||
+    message.includes("404") ||
+    message.includes("not found") ||
+    message.includes("is not found") ||
+    message.includes("unsupported")
+  );
 };
 
 /**
@@ -125,8 +137,7 @@ export const generateQuizWithAI = async (description, numQuestions = 10, images 
       console.error(`Error generating quiz with model ${modelName}:`, error);
       lastError = error;
       
-      // If this is not a quota error, or if we're on the last model option, don't try again
-      if (!error.message?.includes("quota") && !error.message?.includes("429")) {
+      if (!shouldTryNextModel(error)) {
         break;
       }
     }
@@ -195,7 +206,7 @@ export const generateQuizTitleAndDescriptionWithAI = async (prompt, images = [])
     } catch (error) {
       console.error(`Error generating title/desc with model ${modelName}:`, error);
       lastError = error;
-      if (!error.message?.includes("quota") && !error.message?.includes("429")) break;
+      if (!shouldTryNextModel(error)) break;
     }
   }
   throw new Error(formatErrorMessage(lastError));
@@ -260,8 +271,7 @@ Explanation:`;
       console.error(`Error generating explanation with model ${modelName}:`, error);
       lastError = error;
       
-      // If this is not a quota error, or if we're on the last model option, don't try again
-      if (!error.message?.includes("quota") && !error.message?.includes("429")) {
+      if (!shouldTryNextModel(error)) {
         break;
       }
     }

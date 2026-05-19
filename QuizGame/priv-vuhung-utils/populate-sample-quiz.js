@@ -26,20 +26,17 @@ const firebaseConfig = {
 
 // Parse command line arguments
 const args = process.argv.slice(2);
-let modelName = "gemini-2.0-flash-lite"; // Default model
+let modelName = "gemini-2.5-flash-lite"; // Default model
 let targetCategories = null; // Default to all categories
 
 // Available models
 const AVAILABLE_MODELS = {
-  "gemini-2.5-flash": { name: "Gemini 2.5 Flash Preview 04-17", rpm: 10, tpm: 250000, rpd: 500 },
-  "gemini-2.5-pro-experimental": { name: "Gemini 2.5 Pro Experimental 03-25", rpm: 5, tpm: 250000, rpd: 25 },
-  "gemini-2.5-pro": { name: "Gemini 2.5 Pro Preview 03-25", rpm: null, tpm: null, rpd: null },
+  "gemini-2.5-flash-lite": { name: "Gemini 2.5 Flash-Lite", rpm: null, tpm: null, rpd: null },
+  "gemini-2.5-flash": { name: "Gemini 2.5 Flash", rpm: null, tpm: null, rpd: null },
+  "gemini-2.5-pro": { name: "Gemini 2.5 Pro", rpm: null, tpm: null, rpd: null },
   "gemini-2.0-flash": { name: "Gemini 2.0 Flash", rpm: 15, tpm: 1000000, rpd: 1500 },
-  "gemini-2.0-flash-experimental": { name: "Gemini 2.0 Flash Experimental", rpm: 10, tpm: 1000000, rpd: 1500 },
   "gemini-2.0-flash-lite": { name: "Gemini 2.0 Flash-Lite", rpm: 30, tpm: 1000000, rpd: 1500 },
-  "gemini-1.5-flash": { name: "Gemini 1.5 Flash", rpm: 15, tpm: 1000000, rpd: 1500 },
-  "gemini-1.5-flash-8b": { name: "Gemini 1.5 Flash-8B", rpm: 15, tpm: 1000000, rpd: 1500 },
-  "gemini-1.5-pro": { name: "Gemini 1.5 Pro", rpm: 2, tpm: 32000, rpd: 50 }
+  "gemini-1.5-flash": { name: "Gemini 1.5 Flash", rpm: 15, tpm: 1000000, rpd: 1500 }
 };
 
 // List of categories

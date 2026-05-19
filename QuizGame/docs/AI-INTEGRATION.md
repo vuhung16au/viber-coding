@@ -152,9 +152,9 @@ export async function generateQuiz(description, numQuestions = 10, options = {})
 QuizGame implements a multi-model strategy with fallbacks to ensure reliability:
 
 ### Primary Models
-- **Gemini 2.0 Flash-Lite** - Primary model for fast generation
-- **Gemini 1.5 Flash-8B** - Secondary fallback model
-- **Gemini 1.0 Pro** - Tertiary fallback model
+- **Gemini 2.5 Flash-Lite** - Primary model for fast, low-cost generation
+- **Gemini 2.5 Flash** - Secondary fallback model
+- **Gemini 2.0 Flash-Lite** - Tertiary fallback model
 
 ### Model Selection Strategy
 
@@ -162,9 +162,9 @@ The application attempts generation in sequence, falling back to next model when
 
 ```javascript
 const MODEL_OPTIONS = {
-  PRIMARY: "gemini-2.0-flash-lite",
-  SECONDARY: "gemini-1.5-flash-8b", 
-  FALLBACK: "gemini-1.0-pro"        
+  PRIMARY: "gemini-2.5-flash-lite",
+  SECONDARY: "gemini-2.5-flash", 
+  FALLBACK: "gemini-2.0-flash-lite"        
 };
 ```
 
@@ -174,9 +174,9 @@ Each model is optimized for different aspects of quiz generation:
 
 | Model | Strengths | Use Cases |
 |-------|-----------|-----------|
-| Gemini 2.0 Flash-Lite | Fast generation, latest model | Primary quiz generation |
-| Gemini 1.5 Flash-8B | Balanced speed/quality | Secondary fallback |
-| Gemini 1.0 Pro | Stable output format | Final fallback |
+| Gemini 2.5 Flash-Lite | Fast, cost-efficient generation | Primary quiz generation |
+| Gemini 2.5 Flash | Balanced speed/quality | Secondary fallback |
+| Gemini 2.0 Flash-Lite | Older stable flash fallback | Final fallback |
 
 ---
 
